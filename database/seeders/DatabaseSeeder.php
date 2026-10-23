@@ -38,10 +38,12 @@ class DatabaseSeeder extends Seeder
         );
         $medecin->assignRole('medecin');
 
-        // Create sample patients
-        Patient::factory()->count(15)->create([
-            'created_by' => $medecin->id,
-            'updated_by' => $medecin->id,
-        ]);
+        // Create sample patients only in non-production environments
+        if (! app()->isProduction()) {
+            Patient::factory()->count(15)->create([
+                'created_by' => $medecin->id,
+                'updated_by' => $medecin->id,
+            ]);
+        }
     }
 }
