@@ -19,19 +19,36 @@ defineProps<Props>();
 
 <template>
     <Breadcrumb>
-        <BreadcrumbList>
+        <BreadcrumbList class="flex-nowrap overflow-hidden">
             <template v-for="(item, index) in breadcrumbs" :key="index">
-                <BreadcrumbItem>
+                <BreadcrumbItem
+                    :class="[
+                        breadcrumbs.length > 2 && index < breadcrumbs.length - 2
+                            ? 'hidden sm:inline-flex'
+                            : 'inline-flex',
+                    ]"
+                >
                     <template v-if="index === breadcrumbs.length - 1">
-                        <BreadcrumbPage>{{ item.title }}</BreadcrumbPage>
+                        <BreadcrumbPage class="truncate max-w-[130px] sm:max-w-xs md:max-w-md font-medium text-foreground">
+                            {{ item.title }}
+                        </BreadcrumbPage>
                     </template>
                     <template v-else>
                         <BreadcrumbLink as-child>
-                            <Link :href="item.href">{{ item.title }}</Link>
+                            <Link :href="item.href" class="truncate max-w-[90px] sm:max-w-[140px] md:max-w-none">
+                                {{ item.title }}
+                            </Link>
                         </BreadcrumbLink>
                     </template>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator v-if="index !== breadcrumbs.length - 1" />
+                <BreadcrumbSeparator
+                    v-if="index !== breadcrumbs.length - 1"
+                    :class="[
+                        breadcrumbs.length > 2 && index < breadcrumbs.length - 2
+                            ? 'hidden sm:inline-flex'
+                            : 'inline-flex',
+                    ]"
+                />
             </template>
         </BreadcrumbList>
     </Breadcrumb>

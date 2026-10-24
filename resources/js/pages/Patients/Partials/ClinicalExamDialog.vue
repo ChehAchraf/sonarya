@@ -290,7 +290,7 @@ const submit = () => {
 
 <template>
     <Dialog v-model:open="open">
-        <DialogContent class="sm:max-w-3xl max-w-3xl max-h-[92vh] overflow-y-auto sm:p-6 p-4">
+        <DialogContent class="max-w-[calc(100vw-1.5rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader class="pb-3 border-b border-border/60">
                 <div class="flex items-center gap-2.5">
                     <div class="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">

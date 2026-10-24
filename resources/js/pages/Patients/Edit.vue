@@ -235,11 +235,11 @@ const commonCities = [
 <template>
     <Head :title="`Modifier ${patient.dossier_number}`" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 max-w-5xl mx-auto w-full">
+    <div class="flex flex-1 flex-col gap-6 p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full">
         <!-- Top Navigation & Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                     <Button
                         as-child
                         variant="ghost"
@@ -250,23 +250,24 @@ const commonCities = [
                             <ArrowLeft class="size-4" />
                         </Link>
                     </Button>
-                    <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                         Modifier le Dossier Patient
                     </h1>
                     <Badge variant="outline" class="font-mono text-xs">
                         {{ patient.dossier_number }}
                     </Badge>
                 </div>
-                <p class="text-sm text-muted-foreground mt-1 ml-10">
+                <p class="text-xs sm:text-sm text-muted-foreground mt-1 ml-10">
                     Mise à jour des informations sociodémographiques et cliniques du patient.
                 </p>
             </div>
 
-            <div class="flex items-center gap-2 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     as-child
                     variant="outline"
                     size="sm"
+                    class="flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsShow.url({ patient: patient.id })">
                         Annuler
@@ -275,7 +276,7 @@ const commonCities = [
                 <Button
                     type="button"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                     :disabled="form.processing"
                     @click="submit"
                 >
@@ -994,11 +995,12 @@ const commonCities = [
             </Card>
 
             <!-- Bottom Action Bar -->
-            <div class="flex items-center justify-end gap-3 pt-2">
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
                 <Button
                     as-child
                     variant="outline"
                     type="button"
+                    class="w-full sm:w-auto"
                 >
                     <Link :href="patientsShow.url({ patient: patient.id })">
                         Annuler
@@ -1007,7 +1009,7 @@ const commonCities = [
                 <Button
                     type="submit"
                     size="default"
-                    class="gap-2 min-w-44"
+                    class="gap-2 w-full sm:w-auto sm:min-w-44"
                     :disabled="form.processing"
                 >
                     <Loader2 v-if="form.processing" class="size-4 animate-spin" />

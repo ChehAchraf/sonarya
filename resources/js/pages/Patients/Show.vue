@@ -894,10 +894,10 @@ defineOptions({
 <template>
     <Head :title="`Dossier ${patient.dossier_number} — ${patient.full_name}`" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div class="flex flex-1 flex-col gap-6 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full">
         <!-- Top Navigation Bar -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 sm:gap-3">
                 <Button
                     as-child
                     variant="ghost"
@@ -909,11 +909,11 @@ defineOptions({
                     </Link>
                 </Button>
                 <div>
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                             {{ patient.full_name }}
                         </h1>
-                        <span class="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
+                        <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
                             {{ patient.dossier_number }}
                         </span>
                         <span
@@ -934,12 +934,12 @@ defineOptions({
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     as-child
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsIndex.url()">
                         <ArrowLeft class="size-3.5" />
@@ -951,7 +951,7 @@ defineOptions({
                     as-child
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsEdit.url(patient.id)">
                         <Pencil class="size-3.5" />
@@ -962,7 +962,7 @@ defineOptions({
                 <Button
                     as-child
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientDiseaseProfileEdit.url(patient.id)">
                         <Brain class="size-3.5" />
@@ -1115,8 +1115,8 @@ defineOptions({
 
         <!-- Clinical Tabs Navigation -->
         <Tabs v-model="activeTab" class="w-full space-y-4">
-            <div class="border-b border-border pb-px overflow-x-auto">
-                <TabsList class="h-10 bg-transparent p-0 gap-1 sm:gap-2">
+            <div class="border-b border-border pb-px overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
+                <TabsList class="h-10 bg-transparent p-0 gap-1 sm:gap-2 flex-nowrap w-max min-w-full sm:min-w-0 justify-start">
                     <TabsTrigger
                         value="general"
                         class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
@@ -1637,7 +1637,7 @@ defineOptions({
                         type="button"
                         size="sm"
                         @click="openNewRelapseDialog"
-                        class="gap-1.5"
+                        class="gap-1.5 w-full sm:w-auto"
                     >
                         <Plus class="size-3.5" />
                         <span>Nouvelle Poussée</span>
@@ -1791,7 +1791,7 @@ defineOptions({
                         type="button"
                         size="sm"
                         @click="openNewRelapseDialog"
-                        class="gap-1.5"
+                        class="gap-1.5 w-full sm:w-auto"
                     >
                         <Plus class="size-3.5" />
                         <span>Enregistrer la première poussée</span>
@@ -1818,7 +1818,7 @@ defineOptions({
                         type="button"
                         size="sm"
                         @click="openNewClinicalExamDialog"
-                        class="gap-1.5"
+                        class="gap-1.5 w-full sm:w-auto"
                     >
                         <Plus class="size-3.5" />
                         <span>Nouvelle Évaluation</span>
@@ -2060,7 +2060,7 @@ defineOptions({
                         type="button"
                         size="sm"
                         @click="openNewClinicalExamDialog"
-                        class="gap-1.5"
+                        class="gap-1.5 w-full sm:w-auto"
                     >
                         <Plus class="size-3.5" />
                         <span>Enregistrer la première évaluation</span>
@@ -2076,12 +2076,12 @@ defineOptions({
                         <p class="text-xs text-muted-foreground">Suivi longitudinal des lésions cérébrales et médullaires selon les critères de McDonald 2017</p>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="gap-1.5"
+                            class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                             :disabled="patient.mri_exams.length === 0"
                             @click="openMriViewer()"
                         >
@@ -2092,7 +2092,7 @@ defineOptions({
                         <Button
                             type="button"
                             size="sm"
-                            class="gap-1.5"
+                            class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                             @click="openNewMriDialog"
                         >
                             <Plus class="size-3.5" />
@@ -2311,7 +2311,7 @@ defineOptions({
                     <Button
                         type="button"
                         size="sm"
-                        class="gap-1.5 shrink-0"
+                        class="gap-1.5 w-full sm:w-auto"
                         @click="openNewTreatmentDialog"
                     >
                         <Plus class="size-3.5" />
@@ -2566,11 +2566,11 @@ defineOptions({
                         </p>
                     </div>
 
-                    <div class="flex flex-wrap items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                         <Button
                             type="button"
                             size="sm"
-                            class="gap-1.5"
+                            class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                             @click="openNewConsultationDialog"
                         >
                             <Plus class="size-3.5" />
@@ -2580,7 +2580,7 @@ defineOptions({
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="gap-1.5"
+                            class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                             @click="openNewComplementaryExamDialog"
                         >
                             <FlaskConical class="size-3.5 text-primary" />

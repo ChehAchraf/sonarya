@@ -194,27 +194,27 @@ const formatRoleLabel = (role: string) => {
 <template>
     <Head title="Gestion des Utilisateurs & Rôles" />
 
-    <div class="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div class="space-y-6 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <!-- Header Section -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-5">
                 <div>
                     <div class="flex items-center gap-2.5">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
                             <Users class="h-6 w-6" />
                         </div>
                         <div>
-                            <h1 class="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2 flex-wrap">
                                 Utilisateurs & Rôles Médicaux
                             </h1>
-                            <p class="text-sm text-muted-foreground mt-0.5">
+                            <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
                                 Gestion des comptes praticiens, neurologues, opérateurs et attribution des privilèges de sécurité
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <Button @click="openCreateModal" size="sm" class="gap-1.5 text-xs">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <Button @click="openCreateModal" size="sm" class="gap-1.5 text-xs w-full sm:w-auto justify-center">
                         <UserPlus class="h-3.5 w-3.5" />
                         Nouvel Utilisateur
                     </Button>

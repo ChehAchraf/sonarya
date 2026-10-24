@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { FileSpreadsheet, LayoutGrid, Moon, ShieldCheck, Sun, UserCheck, Users } from '@lucide/vue';
+import { FileSpreadsheet, LayoutGrid, Moon, ShieldCheck, Sun, UserCheck, Users, X } from '@lucide/vue';
 import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
+import { Button } from '@/components/ui/button';
 import {
     Sidebar,
     SidebarContent,
@@ -14,6 +15,7 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { useAppearance } from '@/composables/useAppearance';
 import { dashboard } from '@/routes';
@@ -21,6 +23,13 @@ import { index as patientsIndex } from '@/routes/patients';
 import type { NavItem } from '@/types';
 
 const { resolvedAppearance, updateAppearance } = useAppearance();
+const { isMobile, setOpenMobile } = useSidebar();
+
+const handleNavClick = () => {
+    if (isMobile.value) {
+        setOpenMobile(false);
+    }
+};
 
 const toggleTheme = () => {
     updateAppearance(resolvedAppearance.value === 'dark' ? 'light' : 'dark');
@@ -76,16 +85,30 @@ const footerNavItems: NavItem[] = [];
 
 <template>
     <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
-            <SidebarMenu>
+        <SidebarHeader class="flex flex-row items-center justify-between">
+            <SidebarMenu class="flex-1 min-w-0">
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="dashboard()" @click="handleNavClick">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
             </SidebarMenu>
+
+            <!-- Close button for mobile drawer -->
+            <Button
+                v-if="isMobile"
+                type="button"
+                variant="ghost"
+                size="icon"
+                class="size-8 text-muted-foreground hover:text-foreground shrink-0 mr-1"
+                @click="setOpenMobile(false)"
+                title="Fermer le menu"
+            >
+                <X class="size-4" />
+                <span class="sr-only">Fermer</span>
+            </Button>
         </SidebarHeader>
 
         <SidebarContent>

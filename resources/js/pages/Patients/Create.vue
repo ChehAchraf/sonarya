@@ -242,11 +242,12 @@ const commonCities = [
                 </p>
             </div>
 
-            <div class="flex items-center gap-2 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     as-child
                     variant="outline"
                     size="sm"
+                    class="flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsIndex.url()">
                         Annuler
@@ -255,7 +256,7 @@ const commonCities = [
                 <Button
                     type="button"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                     :disabled="form.processing"
                     @click="submit"
                 >
@@ -990,11 +991,12 @@ const commonCities = [
             </Card>
 
             <!-- Bottom Action Bar -->
-            <div class="flex items-center justify-end gap-3 pt-2">
+            <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
                 <Button
                     as-child
                     variant="outline"
                     type="button"
+                    class="w-full sm:w-auto"
                 >
                     <Link :href="patientsIndex.url()">
                         Annuler
@@ -1003,7 +1005,7 @@ const commonCities = [
                 <Button
                     type="submit"
                     size="default"
-                    class="gap-2 min-w-44"
+                    class="gap-2 w-full sm:w-auto sm:min-w-44"
                     :disabled="form.processing"
                 >
                     <Loader2 v-if="form.processing" class="size-4 animate-spin" />

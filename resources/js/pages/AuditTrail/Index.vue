@@ -169,30 +169,30 @@ const formatRoleLabel = (role: string | null) => {
 <template>
     <Head title="Journal d'Audit & Traçabilité CNDP" />
 
-    <div class="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+    <div class="space-y-6 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <!-- Header Section -->
             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b pb-5">
                 <div>
                     <div class="flex items-center gap-2.5">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
                             <ShieldCheck class="h-6 w-6" />
                         </div>
                         <div>
-                            <h1 class="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                                Journal d'Audit & Traçabilité
+                            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground flex items-center gap-2 flex-wrap">
+                                <span>Journal d'Audit & Traçabilité</span>
                                 <Badge variant="outline" class="text-xs bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300">
                                     Conforme Loi 09-08 / CNDP
                                 </Badge>
                             </h1>
-                            <p class="text-sm text-muted-foreground mt-0.5">
+                            <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
                                 Traçabilité inaltérable des accès, créations, modifications, suppressions et exports de données cliniques
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <Button variant="outline" size="sm" @click="resetFilters" class="gap-1.5 text-xs">
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <Button variant="outline" size="sm" @click="resetFilters" class="gap-1.5 text-xs w-full sm:w-auto justify-center">
                         <RotateCcw class="h-3.5 w-3.5" />
                         Actualiser
                     </Button>

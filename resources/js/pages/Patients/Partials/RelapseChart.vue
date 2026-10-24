@@ -501,10 +501,10 @@ const clinicalMetrics = computed(() => {
                 </div>
 
                 <!-- View Switcher Tabs (Healthcare Clean Style) -->
-                <div class="flex items-center bg-muted/70 p-1 rounded-lg border border-border/60 self-start sm:self-auto text-xs">
+                <div class="flex items-center bg-muted/70 p-1 rounded-lg border border-border/60 w-full sm:w-auto text-xs">
                     <button
                         type="button"
-                        class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1.5"
+                        class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
                         :class="activeView === 'curve'
                             ? 'bg-background text-foreground shadow-2xs font-semibold'
                             : 'text-muted-foreground hover:text-foreground'"
@@ -515,7 +515,7 @@ const clinicalMetrics = computed(() => {
                     </button>
                     <button
                         type="button"
-                        class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1.5"
+                        class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
                         :class="activeView === 'bars'
                             ? 'bg-background text-foreground shadow-2xs font-semibold'
                             : 'text-muted-foreground hover:text-foreground'"

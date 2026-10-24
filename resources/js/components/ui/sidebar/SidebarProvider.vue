@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes, Ref } from "vue"
+import { router } from "@inertiajs/vue3"
 import { defaultDocument, useEventListener, useMediaQuery, useVModel } from "@vueuse/core"
 import { TooltipProvider } from "reka-ui"
 import { computed, ref } from "vue"
@@ -37,6 +38,19 @@ function setOpen(value: boolean) {
 function setOpenMobile(value: boolean) {
   openMobile.value = value
 }
+
+// Auto-close sidebar on mobile as soon as any Inertia navigation starts or completes
+router.on("start", () => {
+  if (openMobile.value) {
+    setOpenMobile(false)
+  }
+})
+
+router.on("navigate", () => {
+  if (openMobile.value) {
+    setOpenMobile(false)
+  }
+})
 
 // Helper to toggle the sidebar.
 function toggleSidebar() {

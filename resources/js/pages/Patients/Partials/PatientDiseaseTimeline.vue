@@ -325,15 +325,15 @@ const dmtLines = computed(() => {
                     </div>
 
                     <!-- Filter Checkboxes / Pills -->
-                    <div class="flex items-center gap-1.5 flex-wrap">
+                    <div class="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            :class="['h-7 text-xs px-2.5 gap-1.5', filterShowRelapses ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 font-semibold' : 'opacity-60']"
+                            :class="['h-7 text-xs px-2.5 gap-1.5 flex-1 sm:flex-initial justify-center', filterShowRelapses ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30 font-semibold' : 'opacity-60']"
                             @click="filterShowRelapses = !filterShowRelapses"
                         >
-                            <HeartPulse class="size-3 text-rose-500" />
+                            <HeartPulse class="size-3 text-rose-500 shrink-0" />
                             <span>Poussées ({{ relapses.length }})</span>
                         </Button>
 
@@ -341,10 +341,10 @@ const dmtLines = computed(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            :class="['h-7 text-xs px-2.5 gap-1.5', filterShowTreatments ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold' : 'opacity-60']"
+                            :class="['h-7 text-xs px-2.5 gap-1.5 flex-1 sm:flex-initial justify-center', filterShowTreatments ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 font-semibold' : 'opacity-60']"
                             @click="filterShowTreatments = !filterShowTreatments"
                         >
-                            <Pill class="size-3 text-emerald-500" />
+                            <Pill class="size-3 text-emerald-500 shrink-0" />
                             <span>DMT & Fond ({{ treatments.length }})</span>
                         </Button>
 
@@ -352,10 +352,10 @@ const dmtLines = computed(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            :class="['h-7 text-xs px-2.5 gap-1.5', filterShowClinical ? 'bg-primary/10 text-primary border-primary/30 font-semibold' : 'opacity-60']"
+                            :class="['h-7 text-xs px-2.5 gap-1.5 flex-1 sm:flex-initial justify-center', filterShowClinical ? 'bg-primary/10 text-primary border-primary/30 font-semibold' : 'opacity-60']"
                             @click="filterShowClinical = !filterShowClinical"
                         >
-                            <Activity class="size-3 text-primary" />
+                            <Activity class="size-3 text-primary shrink-0" />
                             <span>EDSS ({{ clinicalExams.length }})</span>
                         </Button>
 
@@ -363,10 +363,10 @@ const dmtLines = computed(() => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            :class="['h-7 text-xs px-2.5 gap-1.5', filterShowMri ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold' : 'opacity-60']"
+                            :class="['h-7 text-xs px-2.5 gap-1.5 flex-1 sm:flex-initial justify-center', filterShowMri ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 font-semibold' : 'opacity-60']"
                             @click="filterShowMri = !filterShowMri"
                         >
-                            <Crosshair class="size-3 text-amber-500" />
+                            <Crosshair class="size-3 text-amber-500 shrink-0" />
                             <span>IRM ({{ mriExams.length }})</span>
                         </Button>
                     </div>

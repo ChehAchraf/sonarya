@@ -303,10 +303,10 @@ const submit = () => {
 <template>
     <Head :title="`Histoire & Antécédents — ${patient.full_name}`" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 max-w-5xl mx-auto w-full">
+    <div class="flex flex-1 flex-col gap-6 p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full">
         <!-- Top Navigation Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2.5 sm:gap-3">
                 <Button
                     as-child
                     variant="ghost"
@@ -319,7 +319,7 @@ const submit = () => {
                 </Button>
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                             Histoire de la Maladie & Antécédents
                         </h1>
                         <span class="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-md bg-muted text-muted-foreground border border-border">
@@ -342,11 +342,12 @@ const submit = () => {
             </div>
 
             <!-- Top Actions -->
-            <div class="flex items-center gap-2.5 self-start sm:self-auto">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     as-child
                     variant="outline"
                     size="sm"
+                    class="flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsShow.url({ patient: patient.id })">
                         Annuler
@@ -355,7 +356,7 @@ const submit = () => {
                 <Button
                     type="button"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                     :disabled="form.processing"
                     @click="submit"
                 >
@@ -987,15 +988,16 @@ const submit = () => {
             </Card>
 
             <!-- Bottom Sticky Action Bar -->
-            <div class="sticky bottom-4 z-10 flex items-center justify-between rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur-sm">
-                <div class="text-xs text-muted-foreground">
+            <div class="sticky bottom-4 z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between rounded-xl border border-border bg-card/95 p-3 sm:p-4 shadow-lg backdrop-blur-sm gap-3">
+                <div class="text-xs text-muted-foreground text-center sm:text-left">
                     Modifications apportées au dossier : <span class="font-mono font-medium text-foreground">{{ patient.dossier_number }}</span>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <Button
                         as-child
                         variant="outline"
                         type="button"
+                        class="flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                     >
                         <Link :href="patientsShow.url({ patient: patient.id })">
                             Annuler
@@ -1003,7 +1005,7 @@ const submit = () => {
                     </Button>
                     <Button
                         type="submit"
-                        class="gap-2 min-w-44"
+                        class="gap-2 flex-1 sm:flex-initial sm:min-w-44 text-xs sm:text-sm justify-center"
                         :disabled="form.processing"
                     >
                         <Loader2 v-if="form.processing" class="size-4 animate-spin" />

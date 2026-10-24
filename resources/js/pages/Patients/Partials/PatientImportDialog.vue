@@ -95,10 +95,10 @@ const close = () => {
 
 <template>
     <Dialog :open="open" @update:open="emit('update:open', $event)">
-        <DialogContent class="sm:max-w-xl">
+        <DialogContent class="max-w-[calc(100vw-1.5rem)] sm:max-w-xl p-4 sm:p-6">
             <DialogHeader>
                 <div class="flex items-center gap-2.5">
-                    <div class="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20">
+                    <div class="p-2 rounded-xl bg-primary/10 text-primary border border-primary/20 shrink-0">
                         <FileSpreadsheet class="size-5" />
                     </div>
                     <div>
@@ -114,7 +114,7 @@ const close = () => {
 
             <div class="space-y-4 py-2">
                 <!-- Template Download Card -->
-                <div class="flex items-center justify-between p-3.5 rounded-lg border border-border/80 bg-muted/30">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3.5 rounded-lg border border-border/80 bg-muted/30 gap-2.5">
                     <div class="space-y-0.5">
                         <span class="text-xs font-semibold text-foreground flex items-center gap-1.5">
                             <Download class="size-3.5 text-primary" />
@@ -129,7 +129,7 @@ const close = () => {
                         variant="outline"
                         size="sm"
                         @click="downloadTemplate"
-                        class="gap-1.5 shrink-0 text-xs"
+                        class="gap-1.5 w-full sm:w-auto shrink-0 text-xs justify-center"
                     >
                         <FileSpreadsheet class="size-3.5" />
                         <span>Télécharger Modèle</span>

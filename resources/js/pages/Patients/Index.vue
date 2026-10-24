@@ -174,7 +174,7 @@ const resetFilters = () => {
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <div class="flex items-center gap-2">
-                    <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                         Dossiers Patients
                     </h1>
                     <span
@@ -183,16 +183,16 @@ const resetFilters = () => {
                         {{ patients.total }} enregistrés
                     </span>
                 </div>
-                <p class="text-sm text-muted-foreground mt-0.5">
+                <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">
                     Registre clinique et suivi longitudinal des patients atteints de sclérose en plaques
                 </p>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     type="button"
                     variant="outline"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm"
                     size="default"
                     @click="isImportDialogOpen = true"
                 >
@@ -200,7 +200,7 @@ const resetFilters = () => {
                     <span>Importer (Excel / SPSS)</span>
                 </Button>
 
-                <Button as-child class="gap-1.5" size="default">
+                <Button as-child class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm" size="default">
                     <Link :href="patientsCreate.url()">
                         <Plus class="size-4" />
                         <span>Nouveau Dossier</span>
@@ -219,7 +219,7 @@ const resetFilters = () => {
         </div>
 
         <!-- Filter & Search Bar -->
-        <div class="rounded-xl border border-border bg-card p-4 shadow-2xs">
+        <div class="rounded-xl border border-border bg-card p-3 sm:p-4 shadow-2xs">
             <div class="flex flex-col gap-3 md:flex-row md:items-center">
                 <!-- Search Input -->
                 <div class="relative flex-1">
@@ -230,58 +230,61 @@ const resetFilters = () => {
                         v-model="search"
                         type="search"
                         placeholder="Rechercher par N° dossier, nom, prénom, CIN, ville..."
-                        class="pl-9"
+                        class="pl-9 h-9 sm:h-10 text-xs sm:text-sm"
                     />
                 </div>
 
-                <!-- Status Filter -->
-                <div class="w-full md:w-56">
-                    <Select :model-value="status" @update:model-value="handleStatusChange">
-                        <SelectTrigger class="w-full">
-                            <SelectValue placeholder="Tous les statuts" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tous les statuts</SelectItem>
-                            <SelectItem
-                                v-for="item in statuses"
-                                :key="item.value"
-                                :value="item.value"
-                            >
-                                {{ item.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
+                <div class="grid grid-cols-2 md:flex md:items-center gap-2 md:gap-3 w-full md:w-auto">
+                    <!-- Status Filter -->
+                    <div class="w-full md:w-52">
+                        <Select :model-value="status" @update:model-value="handleStatusChange">
+                            <SelectTrigger class="w-full h-9 sm:h-10 text-xs sm:text-sm">
+                                <SelectValue placeholder="Tous les statuts" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les statuts</SelectItem>
+                                <SelectItem
+                                    v-for="item in statuses"
+                                    :key="item.value"
+                                    :value="item.value"
+                                >
+                                    {{ item.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                <!-- Gender Filter -->
-                <div class="w-full md:w-44">
-                    <Select :model-value="gender" @update:model-value="handleGenderChange">
-                        <SelectTrigger class="w-full">
-                            <SelectValue placeholder="Sexe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">Tous les sexes</SelectItem>
-                            <SelectItem
-                                v-for="item in genders"
-                                :key="item.value"
-                                :value="item.value"
-                            >
-                                {{ item.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <!-- Gender Filter -->
+                    <div class="w-full md:w-40">
+                        <Select :model-value="gender" @update:model-value="handleGenderChange">
+                            <SelectTrigger class="w-full h-9 sm:h-10 text-xs sm:text-sm">
+                                <SelectValue placeholder="Sexe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les sexes</SelectItem>
+                                <SelectItem
+                                    v-for="item in genders"
+                                    :key="item.value"
+                                    :value="item.value"
+                                >
+                                    {{ item.label }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 <!-- Reset Filters Button -->
                 <Button
                     v-if="hasActiveFilters"
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     @click="resetFilters"
-                    class="shrink-0 text-muted-foreground hover:text-foreground"
+                    class="shrink-0 text-muted-foreground hover:text-foreground gap-1.5 text-xs w-full md:w-auto justify-center"
                     title="Réinitialiser les filtres"
                 >
-                    <RotateCcw class="size-4" />
+                    <RotateCcw class="size-3.5" />
+                    <span>Réinitialiser les filtres</span>
                 </Button>
             </div>
         </div>
@@ -419,7 +422,7 @@ const resetFilters = () => {
                 v-if="patients.total > 0"
                 class="flex flex-col gap-3 border-t border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between text-xs text-muted-foreground"
             >
-                <div>
+                <div class="text-center sm:text-left">
                     Affichage de
                     <span class="font-medium text-foreground">{{ patients.from || 0 }}</span>
                     à
@@ -429,7 +432,7 @@ const resetFilters = () => {
                     patients
                 </div>
 
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
                     <template v-for="(link, index) in patients.links" :key="index">
                         <!-- Previous button -->
                         <Link

@@ -171,7 +171,7 @@ const submit = () => {
 
 <template>
     <Dialog :open="open" @update:open="(val: boolean) => emit('update:open', val)">
-        <DialogContent class="sm:max-w-2xl max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:rounded-2xl">
+        <DialogContent class="max-w-[calc(100vw-1.5rem)] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 sm:rounded-2xl">
             <DialogHeader class="pb-3 border-b border-border">
                 <div class="flex items-center gap-2.5">
                     <div class="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">

@@ -310,21 +310,21 @@ defineOptions({
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <!-- Toggle Pseudonymization mode -->
                 <button
                     type="button"
                     @click="formFilters.pseudonymize = !formFilters.pseudonymize"
                     :class="[
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors',
+                        'flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors flex-1 sm:flex-initial',
                         formFilters.pseudonymize
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30'
                             : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30',
                     ]"
                     :title="formFilters.pseudonymize ? 'Identifiants pseudonymisés actifs (recommandé recherche)' : 'Mode nominatif actif'"
                 >
-                    <ShieldCheck v-if="formFilters.pseudonymize" class="size-4" />
-                    <Shield v-else class="size-4" />
+                    <ShieldCheck v-if="formFilters.pseudonymize" class="size-4 shrink-0" />
+                    <Shield v-else class="size-4 shrink-0" />
                     <span>{{ formFilters.pseudonymize ? 'Mode Pseudonymisé' : 'Mode Nominatif' }}</span>
                 </button>
 
@@ -333,21 +333,21 @@ defineOptions({
                     type="button"
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                     @click="isImportDialogOpen = true"
                 >
-                    <UploadCloud class="size-3.5 text-muted-foreground" />
-                    <span>Importer (Excel/SPSS)</span>
+                    <UploadCloud class="size-3.5 text-muted-foreground shrink-0" />
+                    <span>Importer</span>
                 </Button>
 
                 <!-- Export CSV Pseudonymisé -->
                 <Button
                     type="button"
                     size="sm"
-                    class="gap-1.5 shadow-2xs font-medium"
+                    class="gap-1.5 shadow-2xs font-medium flex-1 sm:flex-initial text-xs justify-center"
                     @click="triggerExport(true)"
                 >
-                    <Download class="size-3.5" />
+                    <Download class="size-3.5 shrink-0" />
                     <span>Export Recherche (SPSS/R)</span>
                 </Button>
 
@@ -356,11 +356,11 @@ defineOptions({
                     type="button"
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs justify-center"
                     @click="triggerExport(false)"
                 >
-                    <FileText class="size-3.5 text-muted-foreground" />
-                    <span class="hidden sm:inline">Export Nominatif</span>
+                    <FileText class="size-3.5 text-muted-foreground shrink-0" />
+                    <span>Export Nominatif</span>
                 </Button>
             </div>
         </div>

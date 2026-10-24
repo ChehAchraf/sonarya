@@ -412,54 +412,54 @@ const intervalMonths = computed(() => {
             </DialogHeader>
 
             <!-- TOP MEDICAL HEADER TOOLBAR -->
-            <div class="h-14 px-4 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between shrink-0 select-none gap-3">
+            <div class="min-h-14 py-2 px-3 sm:px-4 bg-zinc-900 border-b border-zinc-800 flex flex-wrap items-center justify-between shrink-0 select-none gap-2">
                 <!-- Patient & Module Info -->
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0">
                     <div class="p-1.5 rounded-lg bg-primary/20 text-primary border border-primary/30 shrink-0">
                         <Crosshair class="size-4" />
                     </div>
                     <div class="min-w-0 truncate">
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-bold text-white tracking-wide truncate">
-                                Visionneuse & Comparateur d'IRM SEP
+                                Visionneuse IRM
                             </span>
-                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0">
+                            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 shrink-0 hidden sm:inline-block">
                                 DICOM / Coupes 3D
                             </span>
                         </div>
                         <p class="text-[11px] text-zinc-400 truncate">
-                            Patient : <span class="font-semibold text-zinc-200">{{ patientName }}</span> • Dossier : <span class="font-mono text-zinc-300">{{ dossierNumber }}</span>
+                            {{ patientName }} • <span class="font-mono text-zinc-300">{{ dossierNumber }}</span>
                         </p>
                     </div>
                 </div>
 
                 <!-- Mode & Control Actions -->
-                <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-1.5 sm:gap-2 shrink-0 flex-wrap">
                     <!-- Mode Switch: Single vs Compare -->
                     <div class="flex items-center bg-zinc-800 p-0.5 rounded-lg border border-zinc-700">
                         <button
                             type="button"
                             @click="viewMode = 'single'"
                             :class="[
-                                'px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5',
+                                'px-2.5 sm:px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1',
                                 viewMode === 'single' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-zinc-400 hover:text-zinc-200',
                             ]"
                         >
                             <Eye class="size-3.5" />
-                            <span>Vue Unique</span>
+                            <span>Unique</span>
                         </button>
                         <button
                             type="button"
                             @click="viewMode = 'compare'"
                             :disabled="exams.length < 2"
                             :class="[
-                                'px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1.5',
+                                'px-2.5 sm:px-3 py-1 rounded text-xs font-medium transition-colors flex items-center gap-1',
                                 viewMode === 'compare' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-zinc-400 hover:text-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed',
                             ]"
                             :title="exams.length < 2 ? 'Nécessite au moins 2 examens pour comparer' : 'Comparer deux IRM côte à côte'"
                         >
                             <Columns2 class="size-3.5" />
-                            <span>Comparaison Côte à Côte</span>
+                            <span>Comparer</span>
                         </button>
                     </div>
 
@@ -471,12 +471,12 @@ const intervalMonths = computed(() => {
                         size="sm"
                         @click="isSyncSlices = !isSyncSlices"
                         :class="[
-                            'h-8 text-xs gap-1.5 border',
+                            'h-8 text-xs gap-1 border px-2 sm:px-2.5',
                             isSyncSlices ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'text-zinc-400 border-zinc-800',
                         ]"
                     >
-                        <ArrowLeftRight class="size-3.5" />
-                        <span>Synchroniser</span>
+                        <ArrowLeftRight class="size-3" />
+                        <span class="hidden sm:inline">Synchroniser</span>
                     </Button>
 
                     <!-- Reset All -->
@@ -484,11 +484,11 @@ const intervalMonths = computed(() => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        class="h-8 text-xs text-zinc-400 hover:text-white"
+                        class="h-8 text-xs text-zinc-400 hover:text-white px-2 sm:px-2.5"
                         @click="resetViewer('both')"
                     >
-                        <RotateCcw class="size-3.5 mr-1" />
-                        <span>Réinitialiser</span>
+                        <RotateCcw class="size-3 sm:mr-1" />
+                        <span class="hidden sm:inline">Réinitialiser</span>
                     </Button>
 
                     <!-- Dedicated Close Button -->
@@ -496,7 +496,7 @@ const intervalMonths = computed(() => {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        class="size-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg"
+                        class="size-8 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg shrink-0"
                         title="Fermer la visionneuse"
                         @click="emit('update:open', false)"
                     >

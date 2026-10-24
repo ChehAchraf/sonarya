@@ -194,33 +194,33 @@ const maxTreatmentCount = computed(() => {
 <template>
     <Head title="Tableau de Bord — Registre SEP" />
 
-    <div class="flex flex-1 flex-col gap-6 p-4 md:p-6 max-w-7xl mx-auto w-full">
+    <div class="flex flex-1 flex-col gap-6 p-3 sm:p-4 md:p-6 max-w-7xl mx-auto w-full">
         <!-- Top Hero Header -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <div class="flex items-center gap-2">
-                    <span class="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary shrink-0">
                         <Brain class="size-4" />
                     </span>
-                    <h1 class="text-2xl font-bold tracking-tight text-foreground">
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
                         Service de Neurologie
                     </h1>
                     <span class="rounded-md border border-border bg-muted/60 px-2 py-0.5 font-mono text-xs font-medium text-muted-foreground">
                         Registre SEP
                     </span>
                 </div>
-                <p class="text-sm text-muted-foreground mt-1">
+                <p class="text-xs sm:text-sm text-muted-foreground mt-1">
                     Plateforme de suivi longitudinal et de gestion clinique des patients atteints de Sclérose En Plaques (GST TTA).
                 </p>
             </div>
 
             <!-- Quick Action Buttons -->
-            <div class="flex items-center gap-2.5">
+            <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                 <Button
                     as-child
                     variant="outline"
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsIndex.url()">
                         <Users class="size-3.5" />
@@ -230,7 +230,7 @@ const maxTreatmentCount = computed(() => {
                 <Button
                     as-child
                     size="sm"
-                    class="gap-1.5"
+                    class="gap-1.5 flex-1 sm:flex-initial text-xs sm:text-sm justify-center"
                 >
                     <Link :href="patientsCreate.url()">
                         <UserPlus class="size-3.5" />
@@ -241,9 +241,9 @@ const maxTreatmentCount = computed(() => {
         </div>
 
         <!-- Metric KPI Cards Row -->
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="grid grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <!-- 1. Total Patients -->
-            <div class="rounded-xl border border-border bg-card p-5 shadow-2xs">
+            <div class="rounded-xl border border-border bg-card p-3.5 sm:p-5 shadow-2xs">
                 <div class="flex items-center justify-between text-muted-foreground">
                     <span class="text-xs font-semibold uppercase tracking-wider">File Active Totale</span>
                     <Users class="size-4 text-primary" />
@@ -262,13 +262,13 @@ const maxTreatmentCount = computed(() => {
             </div>
 
             <!-- 2. Sex-Ratio F/H -->
-            <div class="rounded-xl border border-border bg-card p-5 shadow-2xs">
+            <div class="rounded-xl border border-border bg-card p-3.5 sm:p-5 shadow-2xs">
                 <div class="flex items-center justify-between text-muted-foreground">
                     <span class="text-xs font-semibold uppercase tracking-wider">Sex-Ratio (F/H)</span>
                     <Users class="size-4 text-primary" />
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-foreground font-mono">
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground font-mono">
                         {{ kpis.sex_ratio.ratio }} : 1
                     </span>
                     <span class="text-xs text-muted-foreground">
@@ -288,26 +288,26 @@ const maxTreatmentCount = computed(() => {
                         :title="`Hommes : ${kpis.sex_ratio.male_count} (${kpis.sex_ratio.male_percentage}%)`"
                     />
                 </div>
-                <div class="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+                <div class="mt-1 flex items-center justify-between text-[10px] sm:text-[11px] text-muted-foreground flex-wrap gap-1">
                     <span class="flex items-center gap-1">
                         <span class="inline-block size-1.5 rounded-full bg-rose-500" />
-                        {{ kpis.sex_ratio.female_count }} Femmes ({{ kpis.sex_ratio.female_percentage }}%)
+                        {{ kpis.sex_ratio.female_count }} F ({{ kpis.sex_ratio.female_percentage }}%)
                     </span>
                     <span class="flex items-center gap-1">
                         <span class="inline-block size-1.5 rounded-full bg-sky-500" />
-                        {{ kpis.sex_ratio.male_count }} Hommes ({{ kpis.sex_ratio.male_percentage }}%)
+                        {{ kpis.sex_ratio.male_count }} H ({{ kpis.sex_ratio.male_percentage }}%)
                     </span>
                 </div>
             </div>
 
             <!-- 3. Âge Moyen de la Cohorte -->
-            <div class="rounded-xl border border-border bg-card p-5 shadow-2xs">
+            <div class="rounded-xl border border-border bg-card p-3.5 sm:p-5 shadow-2xs">
                 <div class="flex items-center justify-between text-muted-foreground">
                     <span class="text-xs font-semibold uppercase tracking-wider">Âge Moyen</span>
                     <Calendar class="size-4 text-primary" />
                 </div>
                 <div class="mt-3 flex items-baseline gap-2">
-                    <span class="text-3xl font-extrabold tracking-tight text-foreground font-mono">
+                    <span class="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground font-mono">
                         {{ kpis.average_age }}
                     </span>
                     <span class="text-sm font-medium text-foreground">ans</span>
@@ -318,7 +318,7 @@ const maxTreatmentCount = computed(() => {
             </div>
 
             <!-- 4. Suivi des Événements & IRM -->
-            <div class="rounded-xl border border-border bg-card p-5 shadow-2xs">
+            <div class="rounded-xl border border-border bg-card p-3.5 sm:p-5 shadow-2xs">
                 <div class="flex items-center justify-between text-muted-foreground">
                     <span class="text-xs font-semibold uppercase tracking-wider">Événements & IRM</span>
                     <Crosshair class="size-4 text-primary" />
