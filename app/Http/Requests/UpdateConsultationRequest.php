@@ -33,6 +33,7 @@ class UpdateConsultationRequest extends FormRequest
             'tolerance_and_adherence' => ['nullable', 'string', 'max:2000'],
             'recent_exam_results' => ['nullable', 'string', 'max:2000'],
             'therapeutic_decision' => ['nullable', 'string', 'max:1000'],
+            'prescribed_tests' => ['nullable', 'string', 'max:2000'],
             'next_appointment_date' => ['nullable', 'date', 'after:consultation_date'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ];
@@ -56,6 +57,7 @@ class UpdateConsultationRequest extends FormRequest
             'tolerance_and_adherence' => 'tolérance et observance',
             'recent_exam_results' => 'résultats des examens récents',
             'therapeutic_decision' => 'décision thérapeutique',
+            'prescribed_tests' => 'bilan à demander',
             'next_appointment_date' => 'date du prochain rendez-vous',
             'notes' => 'notes de consultation',
         ];

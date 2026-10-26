@@ -234,14 +234,23 @@ const copyInitialToCurrent = () => {
 // Quick Symptom Chips
 const commonSymptomChips = [
     'NORB (Névrite optique rétrobulbaire)',
-    'Paresthésies et engourdissements',
+    'Trouble moteur / Déficit moteur',
+    'Troubles sensitifs / Paresthésies',
     'Signe de Lhermitte',
-    'Déficit moteur / Paraparésie',
-    'Troubles de la marche et de l\'équilibre',
-    'Syndrome vestibulaire / Vertiges',
-    'Diplopie / Troubles oculomoteurs',
+    'Vertiges / Atteinte vestibulaire',
+    'Atteinte nerf III (diplopie / oculomotricité)',
+    'Atteinte nerf V (névralgie / hypoesthésie faciale)',
+    'Paralysie faciale périphérique (PFP)',
+    "Aggravation par la chaleur (phénomène d'Uhthoff)",
+    'Atteinte cérébelleuse (ataxie, tremblement, dysarthrie)',
     'Troubles sphinctériens urinaires',
-    'Fatigue pathologique extrême',
+    'Fatigue pathologique',
+    'Crise épileptique',
+    'Dystonie paroxystique',
+    'État dépressif / Anxiété',
+    'Troubles du sommeil',
+    'Atteinte cognitive objectivée',
+    'Retentissement professionnel',
 ];
 
 const appendSymptom = (chip: string) => {

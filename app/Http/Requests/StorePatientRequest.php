@@ -43,7 +43,7 @@ class StorePatientRequest extends FormRequest
             'children_count' => ['nullable', 'integer', 'min:0', 'max:20'],
             'education_level' => ['nullable', 'string', 'max:100'],
             'health_coverage' => ['nullable', 'array'],
-            'health_coverage.*' => ['string', 'max:50'],
+            'health_coverage.*' => ['string', 'max:150'],
             'tobacco_consumption' => ['nullable', 'string', 'max:200'],
             'alcohol_consumption' => ['nullable', 'string', 'max:200'],
             'pregnancies_count' => ['nullable', 'integer', 'min:0', 'max:20'],

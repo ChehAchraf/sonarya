@@ -25,6 +25,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $tolerance_and_adherence
  * @property string|null $recent_exam_results
  * @property string|null $therapeutic_decision
+ * @property string|null $prescribed_tests
  * @property Carbon|null $next_appointment_date
  * @property string|null $notes
  * @property Carbon|null $created_at
@@ -46,6 +47,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'tolerance_and_adherence',
     'recent_exam_results',
     'therapeutic_decision',
+    'prescribed_tests',
     'next_appointment_date',
     'notes',
 ])]

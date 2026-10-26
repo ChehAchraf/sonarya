@@ -362,6 +362,38 @@ test('authenticated user can update disease profile and medical history successf
         ->and($patient->medicalHistory->family_history_details)->toBe('Cousin germain atteint de SEP');
 });
 
+test('authenticated user can store and update patient with updated health coverage including custom private insurance', function () {
+    $user = User::factory()->create();
+
+    $payload = [
+        'first_name' => 'Khadija',
+        'last_name' => 'Benali',
+        'gender' => Gender::Female->value,
+        'birth_date' => '1995-04-12',
+        'status' => PatientStatus::Active->value,
+        'health_coverage' => ['CNSS', 'AMO', 'Autre: Saham Assurance'],
+    ];
+
+    $response = $this->actingAs($user)->post('/patients', $payload);
+    $response->assertRedirect('/patients');
+
+    $patient = Patient::where('first_name', 'Khadija')->first();
+    expect($patient)->not->toBeNull()
+        ->and($patient->health_coverage)->toBe(['CNSS', 'AMO', 'Autre: Saham Assurance']);
+
+    // Now update with Payant direct
+    $updatePayload = array_merge($payload, [
+        'dossier_number' => $patient->dossier_number,
+        'health_coverage' => ['Sans assurance (Payant direct)', 'Autre: RMA Watanya'],
+    ]);
+
+    $updateResponse = $this->actingAs($user)->put("/patients/{$patient->id}", $updatePayload);
+    $updateResponse->assertRedirect("/patients/{$patient->id}");
+
+    $patient->refresh();
+    expect($patient->health_coverage)->toBe(['Sans assurance (Payant direct)', 'Autre: RMA Watanya']);
+});
+
 test('disease profile update validates required fields like clinical forms', function () {
     $user = User::factory()->create();
     $patient = Patient::factory()->create();

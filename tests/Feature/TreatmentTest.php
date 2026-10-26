@@ -176,6 +176,47 @@ test('cannot update or delete a treatment belonging to another patient', functio
     $deleteResponse->assertNotFound();
 });
 
+test('authenticated user can store a treatment with clinical protocol fields and therapeutic line', function () {
+    $user = User::factory()->create();
+    $patient = Patient::factory()->create();
+
+    $payload = [
+        'category' => 'fond',
+        'therapeutic_line' => 'the',
+        'molecule_name' => 'Natalizumab (Tysabri 300mg)',
+        'therapeutic_class' => 'Anticorps monoclonal anti-VLA-4',
+        'start_date' => '2024-01-15',
+        'status' => 'en_cours',
+        'dosage_regimen' => '300 mg IV toutes les 4 semaines',
+        'administration_route' => 'Intraveineuse (IV)',
+        'has_treatment_changed' => false,
+        'care_access_interruption' => false,
+        'post_stop_reactivation' => false,
+        'anti_spastic' => true,
+        'other_symptomatic' => 'Fampridine 10mg',
+        'vaccinations' => ['vhb', 'grippe', 'pneumocoque'],
+        'pre_therapeutic_checklist' => ['Sérologie virus JC', 'IRM de référence'],
+        'pregnancy_contraception_notes' => 'Surveillance néonatale si poursuite au 3ème trimestre.',
+        'estimated_price_mad' => '14 234 DH',
+        'vitamin_d_supplementation' => true,
+        'antidepressants' => false,
+    ];
+
+    $response = $this->actingAs($user)->post("/patients/{$patient->id}/treatments", $payload);
+
+    $response->assertRedirect("/patients/{$patient->id}")
+        ->assertSessionHas('success');
+
+    $patient->refresh();
+    $treatment = $patient->treatments->first();
+    expect($treatment->therapeutic_line)->toBe('the')
+        ->and($treatment->estimated_price_mad)->toBe('14 234 DH')
+        ->and($treatment->anti_spastic)->toBeTrue()
+        ->and($treatment->other_symptomatic)->toBe('Fampridine 10mg')
+        ->and($treatment->vaccinations)->toBe(['vhb', 'grippe', 'pneumocoque'])
+        ->and($treatment->pre_therapeutic_checklist)->toBe(['Sérologie virus JC', 'IRM de référence']);
+});
+
 test('authenticated user can delete a treatment', function () {
     $user = User::factory()->create();
     $patient = Patient::factory()->create();

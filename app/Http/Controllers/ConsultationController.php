@@ -29,6 +29,7 @@ class ConsultationController extends Controller
             'tolerance_and_adherence' => $validated['tolerance_and_adherence'] ?? null,
             'recent_exam_results' => $validated['recent_exam_results'] ?? null,
             'therapeutic_decision' => $validated['therapeutic_decision'] ?? null,
+            'prescribed_tests' => $validated['prescribed_tests'] ?? null,
             'next_appointment_date' => $validated['next_appointment_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
         ]);
@@ -61,6 +62,7 @@ class ConsultationController extends Controller
             'tolerance_and_adherence' => $validated['tolerance_and_adherence'] ?? null,
             'recent_exam_results' => $validated['recent_exam_results'] ?? null,
             'therapeutic_decision' => $validated['therapeutic_decision'] ?? null,
+            'prescribed_tests' => $validated['prescribed_tests'] ?? null,
             'next_appointment_date' => $validated['next_appointment_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
         ]);

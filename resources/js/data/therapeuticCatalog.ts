@@ -1,0 +1,379 @@
+/**
+ * Catalogue Thérapeutique de la Sclérose En Plaques au Maroc
+ * Conforme au Cahier des Charges Clinique & Monographies Thérapeutiques (Maroc)
+ */
+
+export interface MoleculeMonograph {
+    id: string;
+    line: 'plateforme' | 'the';
+    lineLabel: string;
+    moleculeName: string;
+    commercialNames: string;
+    estimatedPriceMAD: string;
+    hospitalPriceMAD?: string;
+    posology: string;
+    administrationRoute: string;
+    therapeuticClass: string;
+    prescriptionReason: string;
+    preTherapeuticChecklist: string[];
+    surveillanceChecklist: string[];
+    pregnancyContraceptionNotes: string;
+    requiresJcStratification?: boolean;
+    requiresCardioMonitoring?: boolean;
+    requiresLiveVaccineWarning?: boolean;
+}
+
+export const THERAPEUTIC_CATALOG: MoleculeMonograph[] = [
+    // ==========================================
+    // 1. TRAITEMENTS DE PLATEFORME (LIGNE 1)
+    // ==========================================
+    {
+        id: 'acetate-glatirame',
+        line: 'plateforme',
+        lineLabel: 'Traitement de Plateforme',
+        moleculeName: 'Acétate de glatiramère',
+        commercialNames: 'Copaxone / Pramer 40mg',
+        estimatedPriceMAD: '2 873 DH (b/3: 1 042 DH)',
+        posology: '20 mg/j en injection SC ou 40 mg 3 fois par semaine SC',
+        administrationRoute: 'Sous-cutanée (SC)',
+        therapeuticClass: 'Polymère synthétique d\'acides aminés (Immunomodulateur)',
+        prescriptionReason: 'Forme récurrente-rémittente en 1ère ligne (profil de sécurité élevé)',
+        preTherapeuticChecklist: [
+            'NFS plaquettes initiale de référence',
+            'Bilan hépatique (ASAT, ALAT) et rénal (créatinine)',
+            'Examen dermatologique des sites d\'injection',
+        ],
+        surveillanceChecklist: [
+            'Surveillance des réactions locales aux points d\'injection (lipatrophie)',
+            'Information sur la réaction post-injection immédiate transitoire (flush, oppression thoracique, palpitations bénignes)',
+        ],
+        pregnancyContraceptionNotes: 'Autorisé pendant la grossesse et l\'allaitement (données du CRAT favorables, pas d\'effet tératogène).',
+        requiresLiveVaccineWarning: false,
+    },
+    {
+        id: 'interferon-beta',
+        line: 'plateforme',
+        lineLabel: 'Traitement de Plateforme',
+        moleculeName: 'Interféron bêta (1a / 1b / pégylé)',
+        commercialNames: 'Avonex 30µg / Betaferon 250µg / Rebif 44µg / Plegridy / Extavia',
+        estimatedPriceMAD: 'Avonex: 8 010 DH | Betaferon: 8 480 DH | Rebif: 8 187 DH',
+        posology: 'Avonex: 30 µg IM/semaine | Betaferon: 250 µg SC 1j/2 | Rebif: 44 µg SC 3x/semaine | Plegridy: 125 µg SC/2 sem',
+        administrationRoute: 'Sous-cutanée (SC) ou Intramusculaire (IM)',
+        therapeuticClass: 'Interféron bêta (Cytokine immunomodulatrice)',
+        prescriptionReason: 'Traitement de fond de première intention dans la forme récurrente-rémittente',
+        preTherapeuticChecklist: [
+            'NFS plaquettes complète',
+            'Bilan hépatique complet (ALAT, ASAT, Bilirubine)',
+            'Bilan thyroïdien (TSH)',
+            'Sérologies VHB, VHC',
+        ],
+        surveillanceChecklist: [
+            'Bilan hépatique et NFS à M1, M3, M6 puis tous les 6 mois',
+            'TSH annuelle',
+            'Gestion du syndrome pseudo-grippal (paracétamol ou AINS 1h avant l\'injection)',
+        ],
+        pregnancyContraceptionNotes: 'Compatible avec la grossesse et l\'allaitement si cliniquement requis.',
+        requiresLiveVaccineWarning: false,
+    },
+    {
+        id: 'teriflunomide',
+        line: 'plateforme',
+        lineLabel: 'Traitement de Plateforme',
+        moleculeName: 'Tériflunomide',
+        commercialNames: 'Aubagio 14mg',
+        estimatedPriceMAD: '8 699 DH',
+        hospitalPriceMAD: 'Hôpital: 8 537 DH',
+        posology: '14 mg 1 fois par jour par voie orale',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Inhibiteur sélectif et réversible de la DHODH',
+        prescriptionReason: 'Forme récurrente-rémittente active en première intention orale',
+        preTherapeuticChecklist: [
+            'NFS plaquettes (taux de lymphocytes)',
+            'Transaminases ALAT/ASAT (doivent être < 2x LSN)',
+            'Pression artérielle de référence',
+            'Sérologies VHB, VHC, VIH et test Quantiféron (Tuberculose)',
+            'Test de grossesse sérique (bêta-HCG) négatif obligatoire chez la femme en âge de procréer',
+        ],
+        surveillanceChecklist: [
+            'ALAT toutes les 2 semaines pendant les 6 premiers mois, puis tous les 2 mois',
+            'NFS et pression artérielle régulières',
+        ],
+        pregnancyContraceptionNotes: 'CONTRE-INDICATION STRICTE : Tératogène avéré. Contraception efficace indispensable. En cas de désir de grossesse : procédure d\'élimination accélérée obligatoire par Cholestyramine 8g 3x/j pendant 11 jours avec 2 dosages plasmatiques < 0.02 mg/L à 14 jours d\'intervalle.',
+        requiresLiveVaccineWarning: false,
+    },
+    {
+        id: 'dimethyl-fumarate',
+        line: 'plateforme',
+        lineLabel: 'Traitement de Plateforme',
+        moleculeName: 'Diméthyl fumarate',
+        commercialNames: 'Tecfidera 240mg / Fumetil 240mg',
+        estimatedPriceMAD: 'Tecfidera 240mg: 8 781 DH | Fumetil: 4 590 DH',
+        posology: '120 mg x 2/j pendant 7 jours, puis posologie d\'entretien 240 mg x 2/j au milieu des repas',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Immunomodulateur oral (Activateur de la voie antioxydante Nrf2)',
+        prescriptionReason: 'Forme récurrente-rémittente active en première intention orale',
+        preTherapeuticChecklist: [
+            'NFS plaquettes complète avec formule leucocytaire (taux de lymphocytes)',
+            'Bilan hépatique (ASAT, ALAT) et rénal (créatininémie, protéinurie)',
+        ],
+        surveillanceChecklist: [
+            'NFS tous les 3 mois : surveillance étroite des lymphocytes (arrêt obligatoire si lymphopénie sévère persistante < 500/mm³ pendant plus de 6 mois en raison du risque de LEMP)',
+            'Bilan hépatique et rénal semestriel',
+        ],
+        pregnancyContraceptionNotes: 'Données humaines limitées : contraception recommandée par précaution. Arrêt avant conception recommandé.',
+        requiresLiveVaccineWarning: false,
+    },
+    {
+        id: 'diroximel-fumarate',
+        line: 'plateforme',
+        lineLabel: 'Traitement de Plateforme',
+        moleculeName: 'Diroximel fumarate',
+        commercialNames: 'Vumerity (Non commercialisé au Maroc)',
+        estimatedPriceMAD: '> 8 200 DH (Importation)',
+        posology: '231 mg 2 gélules 2 fois par jour au cours des repas',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Promédicament du monométhylfumarate (Nrf2)',
+        prescriptionReason: 'Alternative au diméthyl fumarate en cas d\'intolérance digestive haute',
+        preTherapeuticChecklist: [
+            'NFS plaquettes complète',
+            'Bilan hépatique et rénal',
+        ],
+        surveillanceChecklist: [
+            'NFS tous les 3 mois (surveillance du seuil de lymphocytes < 500/mm³)',
+        ],
+        pregnancyContraceptionNotes: 'Contraception recommandée pendant le traitement.',
+        requiresLiveVaccineWarning: false,
+    },
+
+    // ==========================================
+    // 2. TRAITEMENTS DE HAUTE EFFICACITÉ (THE)
+    // ==========================================
+    {
+        id: 'fingolimod',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Fingolimod',
+        commercialNames: 'Gilenya 0.5mg',
+        estimatedPriceMAD: '12 023 DH',
+        hospitalPriceMAD: 'Hôpital: 11 795 DH',
+        posology: '0.5 mg 1 fois par jour par voie orale',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Modulateur des récepteurs de la sphingosine-1-phosphate (S1P)',
+        prescriptionReason: 'SEP récurrente-rémittente très active (échec de ligne 1 ou d\'emblée sévère)',
+        preTherapeuticChecklist: [
+            'ECG de référence (recherche de trouble de conduction, BAV)',
+            'Sérologie VZV (Varicelle-Zona) : VACCINATION OBLIGATOIRE si sérologie négative au moins 1 mois avant initiation',
+            'Examen ophtalmologique avec fond d\'œil / OCT (recherche d\'œdème maculaire)',
+            'NFS plaquettes, bilan hépatique complet',
+            'Sérologies VHB, VHC, VIH et test de grossesse',
+        ],
+        surveillanceChecklist: [
+            'Surveillance hospitalière de la 1ère dose pendant au moins 6h avec monitorage continu FC, ECG horaire et PA',
+            'Contrôle ophtalmologique (OCT) à M3-M4',
+            'NFS régulière (lymphocytes attendus entre 200 et 400/mm³)',
+            'Bilan hépatique régulier',
+        ],
+        pregnancyContraceptionNotes: 'STRICTEMENT CONTRE-INDIQUÉ pendant la grossesse (tératogène, risque malformatif cardiaque). Contraception efficace obligatoire pendant et 2 mois après l\'arrêt.',
+        requiresCardioMonitoring: true,
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'ponesimod-ozanimod',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Ponesimod / Ozanimod',
+        commercialNames: 'Ponvory 20mg / Zeposia 0.92mg',
+        estimatedPriceMAD: '~11 500 DH',
+        posology: 'Schéma de titration progressive sur 7 à 14 jours, puis dose d\'entretien 1x/j PO',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Modulateur sélectif S1P1/S1P5 de seconde génération',
+        prescriptionReason: 'SEP récurrente active avec meilleure sélectivité cardiaque',
+        preTherapeuticChecklist: [
+            'ECG initial et bilan cardiaque',
+            'Sérologie VZV et statut vaccinal',
+            'Examen ophtalmologique (OCT)',
+            'NFS et bilan hépatique',
+        ],
+        surveillanceChecklist: [
+            'NFS régulière et bilan hépatique',
+            'OCT de contrôle si diabète ou uvéite',
+        ],
+        pregnancyContraceptionNotes: 'Contraception hautement efficace obligatoire. Arrêt au moins 1 à 3 mois avant projet de conception.',
+        requiresCardioMonitoring: true,
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'natalizumab',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Natalizumab',
+        commercialNames: 'Tysabri 300mg IV',
+        estimatedPriceMAD: '14 234 DH',
+        hospitalPriceMAD: 'Hôpital: 13 963 DH',
+        posology: '300 mg en perfusion IV toutes les 4 semaines (ou schéma étendu toutes les 6 semaines pour réduire le risque de LEMP)',
+        administrationRoute: 'Intraveineuse (IV)',
+        therapeuticClass: 'Anticorps monoclonal humanisé anti-intégrine alpha-4 (VLA-4)',
+        prescriptionReason: 'SEP récurrente très active d\'emblée ou en échec d\'un traitement de plateforme',
+        preTherapeuticChecklist: [
+            'Sérologie virus JC (JCV Index) de référence',
+            'IRM cérébrale de référence datant de moins de 3 mois',
+            'NFS plaquettes, bilan hépatique',
+            'Vérification des antécédents d\'immunosuppresseurs',
+        ],
+        surveillanceChecklist: [
+            'Stratification continue du risque de LEMP (Leucoencéphalopathie multifocale progressive) :',
+            '1) Index JC : <=0.9 (faible risque) | 0.9 - 1.5 (risque intermédiaire) | >1.5 (haut risque)',
+            '2) Durée de traitement : seuil critique à 24 mois',
+            '3) Antécédent d\'immunosuppresseurs préalables',
+            'Sérologie JC tous les 6 mois si initialement négative ou faible',
+            'IRM cérébrale simplifiée tous les 3 à 6 mois si patient à haut risque de LEMP (Index > 1.5 et > 24 mois)',
+            'Surveillance des réactions d\'hypersensibilité et anticorps neutralisants',
+        ],
+        pregnancyContraceptionNotes: 'Peut être maintenu jusqu\'à la conception ou jusqu\'au 3ème trimestre sous surveillance hématologique du nouveau-né (thrombopénie/anémie néonatale transitoire).',
+        requiresJcStratification: true,
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'ocrelizumab',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Ocrélizumab',
+        commercialNames: 'Ocrevus 300mg',
+        estimatedPriceMAD: '42 099 DH',
+        posology: 'Dose initiale : 300 mg à J1 puis 300 mg à J15. Dose d\'entretien : 600 mg en perfusion IV tous les 6 mois',
+        administrationRoute: 'Intraveineuse (IV)',
+        therapeuticClass: 'Anticorps monoclonal humanisé ciblant le CD20 des lymphocytes B',
+        prescriptionReason: 'SEP récurrente très active ou SEP primaire progressive (PPMS)',
+        preTherapeuticChecklist: [
+            'NFS plaquettes complète',
+            'Dosage quantitatif des immunoglobulines sériques (IgG, IgM, IgA)',
+            'Sérologies complètes : VHB (Ag HBs, Anti-HBs, Anti-HBc), VHC, VZV, VIH',
+            'Dépistage tuberculose (Quantiféron / radiographie pulmonaire)',
+            'Test de grossesse sérique négatif',
+            'Mise à jour complète des vaccins (Pneumocoque, Grippe, COVID) au moins 4 à 6 semaines avant',
+        ],
+        surveillanceChecklist: [
+            'Prémédication obligatoire avant chaque perfusion : Corticoïde IV (Méthylprednisolone 100 mg) + Antihistaminique H1 + Paracétamol',
+            'Surveillance perfusionnelle et 1h post-perfusion',
+            'Dosage semestriel des immunoglobulines (IgG/IgM) : risque d\'hypogammaglobulinémie et d\'infections récurrentes',
+            'Surveillance NFS (lymphopénie, neutropénie)',
+        ],
+        pregnancyContraceptionNotes: 'Contraception efficace requise pendant le traitement et 6 à 12 mois après la dernière perfusion. Si survenue d\'une grossesse, surveillance des lymphocytes B chez le nouveau-né.',
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'ofatumumab',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Ofatumumab',
+        commercialNames: 'Bonspri / Kesimpta 20mg',
+        estimatedPriceMAD: '11 326 DH',
+        hospitalPriceMAD: 'Hôpital: 11 112 DH',
+        posology: 'Dose d\'induction : 20 mg SC aux semaines S0, S1 et S2. Dose d\'entretien : 20 mg SC une fois par mois dès S4',
+        administrationRoute: 'Sous-cutanée (SC)',
+        therapeuticClass: 'Anticorps monoclonal entièrement humain anti-CD20 (auto-injectable)',
+        prescriptionReason: 'SEP récurrente active avec profil de haute efficacité et autonomie à domicile',
+        preTherapeuticChecklist: [
+            'NFS plaquettes, immunoglobulines sériques (IgG, IgM)',
+            'Sérologies VHB complètes (Ag HBs, Ac anti-HBc), VHC, VIH',
+            'Dépistage de la tuberculose',
+            'Mise à jour vaccinale préalable',
+        ],
+        surveillanceChecklist: [
+            'Dosage périodique des IgG et IgM',
+            'NFS semestrielle',
+            'Surveillance des réactions au site d\'injection et syndrome pseudogrippal lors de la 1ère injection',
+        ],
+        pregnancyContraceptionNotes: 'Contraception efficace pendant le traitement et jusqu\'à 6 mois après la dernière injection.',
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'rituximab',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Rituximab (Biosimilaires)',
+        commercialNames: 'MabThera 500mg / Rixathon / Truxima',
+        estimatedPriceMAD: '9 735 DH',
+        posology: '1000 mg IV à J1 et J15 (ou 500 mg x 2), puis 500 mg à 1000 mg IV tous les 6 mois',
+        administrationRoute: 'Intraveineuse (IV)',
+        therapeuticClass: 'Anticorps monoclonal chimérique anti-CD20',
+        prescriptionReason: 'Traitement d\'escalade anti-CD20 accessible ou échec d\'autres thérapies',
+        preTherapeuticChecklist: [
+            'Sérologies VHB complètes (risque majeur de réactivation fulminante)',
+            'Dosage des immunoglobulines IgG/IgM',
+            'NFS plaquettes et bilan infectieux',
+        ],
+        surveillanceChecklist: [
+            'Prémédication systématique (corticoïde + antihistaminique)',
+            'Dosage semestriel des IgG (arrêt si hypogammaglobulinémie sévère symptomatique)',
+            'NFS régulière',
+        ],
+        pregnancyContraceptionNotes: 'Contraception requise pendant et 12 mois post-traitement.',
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'cladribine',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Cladribine',
+        commercialNames: 'Mavenclad 10mg',
+        estimatedPriceMAD: '~20 057 DH / comprimé',
+        posology: '3.5 mg/kg répartis sur 2 ans (2 semaines de traitement en Année 1 et 2 semaines en Année 2)',
+        administrationRoute: 'Orale (PO)',
+        therapeuticClass: 'Analogue purinique induisant une déplétion lymphocytaire ciblée',
+        prescriptionReason: 'SEP récurrente très active avec schéma de reconstitution immunitaire par cures courtes',
+        preTherapeuticChecklist: [
+            'NFS avec formule lymphocytaire stricte (lymphocytes doivent être normaux avant chaque cure)',
+            'Sérologies VZV (vaccination si séronégatif), VHB, VHC, VIH',
+            'Dépistage tuberculose (Quantiféron / RP)',
+            'Test de grossesse sérique négatif',
+        ],
+        surveillanceChecklist: [
+            'NFS à M2 et M6 de chaque année de traitement (surveillance lymphopénie grade 3/4)',
+            'Prophylaxie anti-herpétique si lymphocytes < 500/mm³',
+            'Dépistage dermatologique et néoplasique régulier',
+        ],
+        pregnancyContraceptionNotes: 'CONTRE-INDICATION STRICTE : Tératogène et génotoxique. Contraception efficace obligatoire pour les deux partenaires pendant les prises et pendant au moins 6 mois après la dernière dose.',
+        requiresLiveVaccineWarning: true,
+    },
+    {
+        id: 'mitoxantrone',
+        line: 'the',
+        lineLabel: 'Traitement de Haute Efficacité (THE)',
+        moleculeName: 'Mitoxantrone',
+        commercialNames: 'Elsep / Novantrone (Non commercialisé au Maroc)',
+        estimatedPriceMAD: 'Non commercialisé au Maroc (Usage exceptionnel)',
+        posology: '12 mg/m² en perfusion IV toutes les 3 semaines ou tous les mois (Dose cumulative max 100 à 140 mg/m²)',
+        administrationRoute: 'Intraveineuse (IV)',
+        therapeuticClass: 'Anthracènedione cytotoxique / Antinéoplasique immunosuppresseur',
+        prescriptionReason: 'Formes agressives d\'emblée ou en échec de toutes les autres thérapies',
+        preTherapeuticChecklist: [
+            'Échocardiographie avec mesure précise de la FEVG (doit être > 50%)',
+            'ECG de référence',
+            'NFS plaquettes et bilan hépatique/rénal complet',
+        ],
+        surveillanceChecklist: [
+            'Contrôle de la FEVG avant CHAQUE perfusion (arrêt immédiat si baisse de la FEVG)',
+            'Calcul strict de la DOSE CUMULATIVE à chaque cure',
+            'Surveillance hématologique prolongée (risque de leucémie myéloïde aiguë secondaire)',
+        ],
+        pregnancyContraceptionNotes: 'STRICTEMENT CONTRE-INDIQUÉ pendant la grossesse et l\'allaitement.',
+        requiresCardioMonitoring: true,
+        requiresLiveVaccineWarning: true,
+    },
+];
+
+export const VACCINATION_LIST = [
+    { id: 'vhb', label: 'Hépatite B (VHB)', type: 'inactivé', recommendedFor: 'Tous les patients SEP (obligatoire avant THE/anti-CD20)' },
+    { id: 'grippe', label: 'Grippe saisonnière', type: 'inactivé', recommendedFor: 'Annuel pour tous les patients SEP' },
+    { id: 'covid', label: 'COVID-19 (ARNm)', type: 'non-vivant', recommendedFor: 'Rappels réguliers' },
+    { id: 'pneumocoque', label: 'Pneumocoque (Prevenar 13 + Pneumovax 23)', type: 'inactivé', recommendedFor: 'Obligatoire avant THE / Immunosuppresseurs' },
+    { id: 'dtcap_ipv', label: 'dTcaP-IPV (Diphtérie, Tétanos, Coqueluche, Polio)', type: 'inactivé', recommendedFor: 'Rappel tous les 10 ans' },
+    { id: 'vha', label: 'Hépatite A (VHA)', type: 'inactivé', recommendedFor: 'Recommandé' },
+    { id: 'hpv', label: 'HPV (Papillomavirus)', type: 'recombinant', recommendedFor: 'Sujets jeunes (< 26 ans)' },
+    { id: 'meningo', label: 'Méningocoque', type: 'inactivé', recommendedFor: 'Recommandé selon contexte' },
+    { id: 'hib', label: 'Haemophilus influenzae b (Hib)', type: 'inactivé', recommendedFor: 'Recommandé avant immunosuppression' },
+    // Live vaccines
+    { id: 'vzv', label: 'Varicelle (VZV) - VACCIN VIVANT ATTÉNUÉ', type: 'vivant_attenue', recommendedFor: 'Obligatoire si sérologie VZV négative au moins 4 à 6 semaines AVANT initiation THE' },
+    { id: 'ror', label: 'ROR (Rougeole-Oreillons-Rubéole) - VACCIN VIVANT ATTÉNUÉ', type: 'vivant_attenue', recommendedFor: 'À administrer au moins 4 à 6 semaines AVANT immunosuppression si séronégatif' },
+];

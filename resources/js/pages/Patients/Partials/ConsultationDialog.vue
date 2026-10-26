@@ -42,6 +42,7 @@ export type ConsultationFormData = {
     tolerance_and_adherence: string | null;
     recent_exam_results: string | null;
     therapeutic_decision: string | null;
+    prescribed_tests?: string | null;
     next_appointment_date: string | null;
     next_appointment_date_raw?: string | null;
     notes: string | null;
@@ -79,6 +80,7 @@ const form = useForm({
     tolerance_and_adherence: '',
     recent_exam_results: '',
     therapeutic_decision: '',
+    prescribed_tests: '',
     next_appointment_date: '',
     notes: '',
 });
@@ -101,6 +103,25 @@ const tolerancePresets = [
     'Intolérance signalée avec sauts de prises, surveillance requise',
 ];
 
+// Prescribed tests presets (Bilan à demander - Cahier des charges p.14)
+const prescribedTestsPresets = [
+    'NFS, plaquettes & bilan hépatique (ASAT, ALAT, GGT)',
+    'Sérologie virus JC (Stratification du risque de LEMP)',
+    'IRM cérébrale et médullaire de contrôle avec injection de gadolinium',
+    'Dosage 25(OH) vitamine D3',
+    'Bilan rénal (créatininémie, clairance) & protéinurie',
+    'Consultation cardiologique + ECG + Échocardiographie (FEVG)',
+    'Bilan pré-thérapeutique THE complet (Sérologies VHB/VHC/VZV/EBV, Quantiféron, NFS)',
+];
+
+const appendPrescribedTest = (test: string) => {
+    if (!form.prescribed_tests) {
+        form.prescribed_tests = test;
+    } else if (!form.prescribed_tests.includes(test)) {
+        form.prescribed_tests += ` • ${test}`;
+    }
+};
+
 watch(
     () => props.open,
     (isOpen) => {
@@ -119,6 +140,7 @@ watch(
             form.tolerance_and_adherence = props.consultation.tolerance_and_adherence || '';
             form.recent_exam_results = props.consultation.recent_exam_results || '';
             form.therapeutic_decision = props.consultation.therapeutic_decision || '';
+            form.prescribed_tests = props.consultation.prescribed_tests || '';
             form.next_appointment_date = props.consultation.next_appointment_date_raw || props.consultation.next_appointment_date || '';
             form.notes = props.consultation.notes || '';
         } else {
@@ -135,6 +157,7 @@ watch(
             form.tolerance_and_adherence = 'Bonne tolérance clinique et biologique, excellente observance';
             form.recent_exam_results = '';
             form.therapeutic_decision = 'Maintien du traitement de fond actuel';
+            form.prescribed_tests = '';
             form.next_appointment_date = '';
             form.notes = '';
         }
@@ -457,6 +480,38 @@ const submit = () => {
                         />
                         <p v-if="form.errors.therapeutic_decision" class="text-[11px] text-destructive">
                             {{ form.errors.therapeutic_decision }}
+                        </p>
+                    </div>
+
+                    <!-- Bilan à demander (Cahier des charges p.14) -->
+                    <div class="space-y-2 p-3 rounded-lg border border-border/70 bg-muted/20">
+                        <div class="flex items-center justify-between">
+                            <Label for="prescribed_tests" class="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                                <Activity class="size-3.5 text-primary" />
+                                <span>Bilan à demander / Examens prescrits</span>
+                            </Label>
+                            <span class="text-[11px] text-muted-foreground">Cliquez sur un examen pour l'ajouter</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="test in prescribedTestsPresets"
+                                :key="test"
+                                type="button"
+                                @click="appendPrescribedTest(test)"
+                                class="text-[10.5px] px-2 py-0.5 rounded-full border border-border/70 bg-background hover:bg-primary/10 hover:border-primary/40 text-muted-foreground hover:text-primary transition-colors text-left"
+                            >
+                                + {{ test }}
+                            </button>
+                        </div>
+                        <Textarea
+                            id="prescribed_tests"
+                            v-model="form.prescribed_tests"
+                            rows="2"
+                            placeholder="Prescriptions biologiques, radiologiques (IRM), ophtalmologiques (OCT) à réaliser avant la prochaine visite..."
+                            class="text-xs resize-none mt-1 bg-background"
+                        />
+                        <p v-if="form.errors.prescribed_tests" class="text-[11px] text-destructive">
+                            {{ form.errors.prescribed_tests }}
                         </p>
                     </div>
 

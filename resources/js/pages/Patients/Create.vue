@@ -20,7 +20,7 @@ import {
     UserPlus,
     Wine,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -153,9 +153,10 @@ const imcClassification = computed(() => {
 const healthCoverageOptions = [
     { value: 'CNSS', label: 'CNSS (Caisse Nationale de Sécurité Sociale)' },
     { value: 'AMO', label: 'AMO (Assurance Maladie Obligatoire)' },
-    { value: 'Sans couverture', label: 'Sans couverture (Paiement direct / RAMEDiste)' },
-    { value: 'Autre', label: 'Autre (Assurance privée / Mutuelle)' },
+    { value: 'Sans assurance (Payant direct)', label: 'Sans assurance (Payant direct)' },
 ];
+
+const otherCoverageName = ref('');
 
 const toggleHealthCoverage = (val: string) => {
     const idx = form.health_coverage.indexOf(val);
@@ -164,6 +165,19 @@ const toggleHealthCoverage = (val: string) => {
     } else {
         form.health_coverage.splice(idx, 1);
     }
+};
+
+const updateOtherCoverage = (val: string | number) => {
+    const strVal = String(val ?? '');
+    otherCoverageName.value = strVal;
+    const standard = form.health_coverage.filter((c) =>
+        ['CNSS', 'AMO', 'Sans assurance (Payant direct)'].includes(c)
+    );
+    const trimmed = strVal.trim();
+    if (trimmed) {
+        standard.push(`Autre: ${trimmed}`);
+    }
+    form.health_coverage = standard;
 };
 
 // Dynamic age calculation based on birth_date
@@ -671,12 +685,12 @@ const commonCities = [
 
                     <Separator />
 
-                    <!-- Couverture Sociale (Checkboxes) -->
-                    <div class="space-y-2.5">
+                    <!-- Couverture Sociale (Checkboxes & Champ Autre) -->
+                    <div class="space-y-3">
                         <Label class="text-sm font-medium block">
                             Couverture Médicale / Assurance Sociale
                         </Label>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div
                                 v-for="cov in healthCoverageOptions"
                                 :key="cov.value"
@@ -692,6 +706,25 @@ const commonCities = [
                                     {{ cov.label }}
                                 </Label>
                             </div>
+                        </div>
+
+                        <!-- Champ Autre Assurance Privée (ex: Saham, RMA) -->
+                        <div class="mt-2 space-y-1.5 p-3 rounded-lg border border-border/60 bg-muted/20">
+                            <Label for="other_coverage_input" class="text-xs font-medium flex items-center gap-1.5 text-foreground">
+                                <span>Autre assurance privée / Mutuelle complémentaire :</span>
+                                <span class="text-muted-foreground font-normal text-[11px]">(Champ de texte libre)</span>
+                            </Label>
+                            <Input
+                                id="other_coverage_input"
+                                type="text"
+                                :model-value="otherCoverageName"
+                                @update:model-value="updateOtherCoverage"
+                                placeholder="Saisir le nom de la compagnie d'assurance (ex: Saham, RMA, Wafa Assurance, Sanad...)"
+                                class="text-xs h-9 bg-background"
+                            />
+                            <p class="text-[11px] text-muted-foreground">
+                                Précisez ici toute assurance privée ou mutuelle spécifique du patient.
+                            </p>
                         </div>
                         <InputError :message="form.errors.health_coverage" />
                     </div>

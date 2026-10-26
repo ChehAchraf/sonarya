@@ -35,6 +35,11 @@ test('authenticated user can store a new complementary exam for a patient', func
         'biology_anti_antinucleaire' => 'negative',
         'biology_anti_bgsa' => 'negative',
         'biology_serology_hbv' => 'negative',
+        'biology_serology_hcv' => 'negative',
+        'biology_serology_vzv' => 'positive',
+        'biology_serology_cmv' => 'negative',
+        'biology_serology_ebv' => 'positive',
+        'biology_serology_jcv' => 'negative',
         'biology_other' => 'Sérologie VIH et TPHA-VDRL négatives',
         'iepp_sample_type' => 'sang_et_lcr',
         'iepp_result' => 'Profil de type 2 : Synthèse intrathécale d\'IgG exclusive',
@@ -59,6 +64,9 @@ test('authenticated user can store a new complementary exam for a patient', func
         ->and($exam->pl_oligoclonal_bands)->toBe('positives')
         ->and($exam->biology_anti_nmo)->toBe('negative')
         ->and($exam->biology_anti_mog)->toBe('negative')
+        ->and($exam->biology_serology_hcv)->toBe('negative')
+        ->and($exam->biology_serology_vzv)->toBe('positive')
+        ->and($exam->biology_serology_jcv)->toBe('negative')
         ->and($exam->iepp_sample_type)->toBe('sang_et_lcr');
 
     // Verify Spatie activity log

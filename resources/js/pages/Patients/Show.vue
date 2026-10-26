@@ -182,6 +182,17 @@ type Treatment = {
     molecule_name: string;
     category: string | null;
     therapeutic_class: string | null;
+    therapeutic_line?: string | null;
+    has_treatment_changed?: boolean;
+    switch_to_molecule?: string | null;
+    care_access_interruption?: boolean;
+    post_stop_reactivation?: boolean;
+    anti_spastic?: boolean;
+    other_symptomatic?: string | null;
+    vaccinations?: string[] | null;
+    pre_therapeutic_checklist?: string[] | null;
+    pregnancy_contraception_notes?: string | null;
+    estimated_price_mad?: string | null;
     start_date: string | null;
     start_date_raw?: string | null;
     end_date: string | null;
@@ -211,6 +222,7 @@ type Consultation = {
     tolerance_and_adherence: string | null;
     recent_exam_results?: string | null;
     therapeutic_decision: string | null;
+    prescribed_tests?: string | null;
     next_appointment_date: string | null;
     next_appointment_date_raw?: string | null;
     notes: string | null;
@@ -230,6 +242,11 @@ type ComplementaryExam = {
     biology_anti_antinucleaire?: string | null;
     biology_anti_bgsa?: string | null;
     biology_serology_hbv?: string | null;
+    biology_serology_hcv?: string | null;
+    biology_serology_vzv?: string | null;
+    biology_serology_cmv?: string | null;
+    biology_serology_ebv?: string | null;
+    biology_serology_jcv?: string | null;
     biology_other?: string | null;
     iepp_sample_type?: string | null;
     iepp_result?: string | null;
@@ -477,6 +494,7 @@ const openEditTreatmentDialog = (treatment: Treatment) => {
     selectedTreatmentToEdit.value = {
         id: treatment.id,
         category: treatment.category || 'fond',
+        therapeutic_line: treatment.therapeutic_line ?? 'plateforme',
         molecule_name: treatment.molecule_name,
         therapeutic_class: treatment.therapeutic_class,
         start_date: treatment.start_date || '',
@@ -484,6 +502,16 @@ const openEditTreatmentDialog = (treatment: Treatment) => {
         end_date: treatment.end_date,
         end_date_raw: treatment.end_date_raw ?? null,
         status: treatment.status,
+        has_treatment_changed: treatment.has_treatment_changed ?? false,
+        switch_to_molecule: treatment.switch_to_molecule ?? null,
+        care_access_interruption: treatment.care_access_interruption ?? false,
+        post_stop_reactivation: treatment.post_stop_reactivation ?? false,
+        anti_spastic: treatment.anti_spastic ?? false,
+        other_symptomatic: treatment.other_symptomatic ?? null,
+        vaccinations: treatment.vaccinations ?? [],
+        pre_therapeutic_checklist: treatment.pre_therapeutic_checklist ?? [],
+        pregnancy_contraception_notes: treatment.pregnancy_contraception_notes ?? null,
+        estimated_price_mad: treatment.estimated_price_mad ?? null,
         dosage_regimen: treatment.dosage_regimen,
         administration_route: treatment.administration_route,
         prescription_reason: treatment.prescription_reason,
@@ -568,6 +596,7 @@ const openEditConsultationDialog = (c: Consultation) => {
         tolerance_and_adherence: c.tolerance_and_adherence,
         recent_exam_results: c.recent_exam_results ?? null,
         therapeutic_decision: c.therapeutic_decision,
+        prescribed_tests: c.prescribed_tests ?? null,
         next_appointment_date: c.next_appointment_date,
         next_appointment_date_raw: c.next_appointment_date_raw ?? null,
         notes: c.notes,
@@ -607,6 +636,11 @@ const openEditComplementaryExamDialog = (exam: ComplementaryExam) => {
         biology_anti_antinucleaire: exam.biology_anti_antinucleaire ?? null,
         biology_anti_bgsa: exam.biology_anti_bgsa ?? null,
         biology_serology_hbv: exam.biology_serology_hbv ?? null,
+        biology_serology_hcv: exam.biology_serology_hcv ?? null,
+        biology_serology_vzv: exam.biology_serology_vzv ?? null,
+        biology_serology_cmv: exam.biology_serology_cmv ?? null,
+        biology_serology_ebv: exam.biology_serology_ebv ?? null,
+        biology_serology_jcv: exam.biology_serology_jcv ?? null,
         biology_other: exam.biology_other ?? null,
         iepp_sample_type: exam.iepp_sample_type ?? null,
         iepp_result: exam.iepp_result ?? null,
@@ -1277,7 +1311,7 @@ defineOptions({
                                             variant="secondary"
                                             class="text-xs"
                                         >
-                                            {{ cov }}
+                                            {{ cov.includes('RAMED') ? 'Sans assurance (Payant direct)' : cov }}
                                         </Badge>
                                     </template>
                                     <span v-else class="text-muted-foreground">Non précisée</span>
@@ -2417,12 +2451,18 @@ defineOptions({
 
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="font-bold text-foreground text-sm">{{ t.molecule_name }}</span>
+                                <Badge v-if="t.therapeutic_line" :variant="t.therapeutic_line === 'the' ? 'default' : 'secondary'" class="text-[9.5px] uppercase">
+                                    {{ t.therapeutic_line === 'the' ? 'Haute Efficacité (THE)' : 'Plateforme' }}
+                                </Badge>
                                 <span :class="['text-[10px] px-2 py-0.5 rounded-full border font-medium', getTreatmentStatusBadge(t.status).class]">
                                     {{ getTreatmentStatusBadge(t.status).label }}
                                 </span>
                                 <Badge variant="outline" class="text-[10px]">
                                     {{ getTreatmentCategoryLabel(t.category) }}
                                 </Badge>
+                                <span v-if="t.estimated_price_mad" class="text-[10.5px] text-primary font-mono font-medium">
+                                    {{ t.estimated_price_mad }}
+                                </span>
                                 <span class="font-mono text-[11px] text-muted-foreground">
                                     {{ t.start_date || '—' }} <span v-if="t.end_date">→ {{ t.end_date }}</span><span v-else>→ Présent</span>
                                 </span>
@@ -2433,9 +2473,25 @@ defineOptions({
                                 <span v-if="t.administration_route">({{ t.administration_route }})</span>
                             </p>
 
-                            <!-- Stop reason if switched or stopped -->
-                            <div v-if="t.stop_reason" class="p-2 rounded bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-300">
-                                <strong>Motif d'arrêt / switch :</strong> {{ t.stop_reason }}
+                            <!-- Alertes arrêt, accès aux soins & réactivation -->
+                            <div v-if="t.stop_reason || t.switch_to_molecule || t.care_access_interruption || t.post_stop_reactivation" class="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-300 space-y-1">
+                                <div v-if="t.stop_reason">
+                                    <strong>Motif d'arrêt / switch :</strong> {{ t.stop_reason }}
+                                </div>
+                                <div v-if="t.switch_to_molecule">
+                                    <strong>Molécule de relais introduite :</strong> {{ t.switch_to_molecule }}
+                                </div>
+                                <div class="flex flex-wrap gap-1.5 pt-0.5">
+                                    <Badge v-if="t.care_access_interruption" variant="destructive" class="text-[9px]">
+                                        Interruption liée à l'accès aux soins
+                                    </Badge>
+                                    <Badge v-if="t.post_stop_reactivation" variant="destructive" class="text-[9px]">
+                                        Réactivation après arrêt
+                                    </Badge>
+                                    <Badge v-if="t.anti_spastic" variant="outline" class="text-[9px]">
+                                        Anti-spastique associé
+                                    </Badge>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2464,11 +2520,17 @@ defineOptions({
                         <TableBody>
                             <TableRow v-for="treatment in patient.treatments" :key="treatment.id">
                                 <TableCell>
-                                    <div class="font-semibold text-sm text-foreground">
-                                        {{ treatment.molecule_name }}
+                                    <div class="font-semibold text-sm text-foreground flex items-center gap-1.5 flex-wrap">
+                                        <span>{{ treatment.molecule_name }}</span>
+                                        <Badge v-if="treatment.therapeutic_line" :variant="treatment.therapeutic_line === 'the' ? 'default' : 'secondary'" class="text-[9px] px-1 py-0 uppercase">
+                                            {{ treatment.therapeutic_line === 'the' ? 'THE' : 'Plateforme' }}
+                                        </Badge>
                                     </div>
                                     <div v-if="treatment.therapeutic_class" class="text-[11px] text-muted-foreground">
                                         {{ treatment.therapeutic_class }}
+                                    </div>
+                                    <div v-if="treatment.estimated_price_mad" class="text-[10px] text-primary font-mono">
+                                        Tarif : {{ treatment.estimated_price_mad }}
                                     </div>
                                 </TableCell>
                                 <TableCell>
@@ -2746,6 +2808,17 @@ defineOptions({
                                     </p>
                                 </div>
 
+                                <!-- Bilan à demander -->
+                                <div v-if="c.prescribed_tests" class="p-3 rounded-lg bg-sky-500/5 border border-sky-500/20 space-y-1">
+                                    <div class="text-[11px] font-semibold text-sky-600 dark:text-sky-400 flex items-center gap-1.5 uppercase tracking-wide">
+                                        <Activity class="size-3" />
+                                        <span>Bilan & Examens Prescrits à Demander</span>
+                                    </div>
+                                    <p class="text-foreground font-medium text-xs">
+                                        {{ c.prescribed_tests }}
+                                    </p>
+                                </div>
+
                                 <!-- Détails cliniques & tolérance -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-muted-foreground">
                                     <div v-if="c.current_treatment_evaluation">
@@ -2897,7 +2970,15 @@ defineOptions({
                                             <div>Anti-NMO (AQP4) : <strong :class="exam.biology_anti_nmo === 'positive' ? 'text-destructive font-bold' : 'text-foreground'">{{ exam.biology_anti_nmo || '—' }}</strong></div>
                                             <div>Anti-MOG : <strong :class="exam.biology_anti_mog === 'positive' ? 'text-destructive font-bold' : 'text-foreground'">{{ exam.biology_anti_mog || '—' }}</strong></div>
                                             <div v-if="exam.biology_anti_antinucleaire">AAN : <span class="text-foreground">{{ exam.biology_anti_antinucleaire }}</span></div>
-                                            <div v-if="exam.biology_serology_hbv">VHB : <span class="text-foreground">{{ exam.biology_serology_hbv }}</span></div>
+                                            <div v-if="exam.biology_anti_bgsa">BGSA : <span class="text-foreground">{{ exam.biology_anti_bgsa }}</span></div>
+                                            <div class="pt-1 border-t border-border/30 text-[10.5px] space-y-0.5">
+                                                <div v-if="exam.biology_serology_hbv">VHB : <span class="text-foreground font-mono">{{ exam.biology_serology_hbv }}</span></div>
+                                                <div v-if="exam.biology_serology_hcv">VHC : <span class="text-foreground font-mono">{{ exam.biology_serology_hcv }}</span></div>
+                                                <div v-if="exam.biology_serology_vzv">VZV : <span class="text-foreground font-mono">{{ exam.biology_serology_vzv }}</span></div>
+                                                <div v-if="exam.biology_serology_cmv">CMV : <span class="text-foreground font-mono">{{ exam.biology_serology_cmv }}</span></div>
+                                                <div v-if="exam.biology_serology_ebv">EBV : <span class="text-foreground font-mono">{{ exam.biology_serology_ebv }}</span></div>
+                                                <div v-if="exam.biology_serology_jcv">Virus JC : <span :class="exam.biology_serology_jcv === 'positive' ? 'text-amber-500 font-bold font-mono' : 'text-foreground font-mono'">{{ exam.biology_serology_jcv }}</span></div>
+                                            </div>
                                         </div>
                                     </div>
 

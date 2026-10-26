@@ -33,6 +33,7 @@ test('authenticated user can store a new consultation for a patient', function (
         'tolerance_and_adherence' => 'Bonne tolérance clinique et biologique, excellente observance.',
         'recent_exam_results' => 'IRM cérébrale de contrôle stable sans nouvelle prise de contraste.',
         'therapeutic_decision' => 'Maintien du traitement de fond actuel',
+        'prescribed_tests' => 'NFS, plaquettes & bilan hépatique complet',
         'next_appointment_date' => '2025-08-10',
         'notes' => 'Patient rassuré. Prochain contrôle semestriel programmé.',
     ];
@@ -52,6 +53,7 @@ test('authenticated user can store a new consultation for a patient', function (
         ->and((float) $c->edss_score)->toBe(2.0)
         ->and($c->relapses_since_last_visit)->toBe(0)
         ->and($c->therapeutic_decision)->toBe('Maintien du traitement de fond actuel')
+        ->and($c->prescribed_tests)->toBe('NFS, plaquettes & bilan hépatique complet')
         ->and($c->next_appointment_date?->format('Y-m-d'))->toBe('2025-08-10');
 
     // Verify Spatie activity log

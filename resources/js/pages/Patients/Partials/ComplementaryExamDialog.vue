@@ -49,6 +49,11 @@ export type ComplementaryExamFormData = {
     biology_anti_antinucleaire: string | null;
     biology_anti_bgsa: string | null;
     biology_serology_hbv: string | null;
+    biology_serology_hcv?: string | null;
+    biology_serology_vzv?: string | null;
+    biology_serology_cmv?: string | null;
+    biology_serology_ebv?: string | null;
+    biology_serology_jcv?: string | null;
     biology_other: string | null;
     iepp_sample_type: string | null;
     iepp_result: string | null;
@@ -83,6 +88,11 @@ const form = useForm({
     biology_anti_antinucleaire: 'negative',
     biology_anti_bgsa: 'negative',
     biology_serology_hbv: 'negative',
+    biology_serology_hcv: 'negative',
+    biology_serology_vzv: 'positive',
+    biology_serology_cmv: 'negative',
+    biology_serology_ebv: 'positive',
+    biology_serology_jcv: 'negative',
     biology_other: '',
     iepp_sample_type: 'sang_et_lcr',
     iepp_result: 'Profil de type 2 : Synthèse intrathécale exclusive d\'IgG (BOC présentes dans le LCR, absentes dans le sérum)',
@@ -136,6 +146,11 @@ const applyTypicalSepPreset = () => {
     form.biology_anti_antinucleaire = 'negative';
     form.biology_anti_bgsa = 'negative';
     form.biology_serology_hbv = 'negative';
+    form.biology_serology_hcv = 'negative';
+    form.biology_serology_vzv = 'positive';
+    form.biology_serology_cmv = 'negative';
+    form.biology_serology_ebv = 'positive';
+    form.biology_serology_jcv = 'negative';
     form.iepp_sample_type = 'sang_et_lcr';
     form.iepp_result = 'Profil de type 2 : Synthèse intrathécale exclusive d\'IgG (critère McDonald 2017 validé)';
     form.iepp_kappa_index = '8.5';
@@ -163,6 +178,11 @@ watch(
             form.biology_anti_antinucleaire = props.exam.biology_anti_antinucleaire || 'negative';
             form.biology_anti_bgsa = props.exam.biology_anti_bgsa || 'negative';
             form.biology_serology_hbv = props.exam.biology_serology_hbv || 'negative';
+            form.biology_serology_hcv = props.exam.biology_serology_hcv || 'negative';
+            form.biology_serology_vzv = props.exam.biology_serology_vzv || 'negative';
+            form.biology_serology_cmv = props.exam.biology_serology_cmv || 'negative';
+            form.biology_serology_ebv = props.exam.biology_serology_ebv || 'negative';
+            form.biology_serology_jcv = props.exam.biology_serology_jcv || 'negative';
             form.biology_other = props.exam.biology_other || '';
             form.iepp_sample_type = props.exam.iepp_sample_type || 'sang_et_lcr';
             form.iepp_result = props.exam.iepp_result || '';
@@ -184,6 +204,11 @@ watch(
             form.biology_anti_antinucleaire = 'negative';
             form.biology_anti_bgsa = 'negative';
             form.biology_serology_hbv = 'negative';
+            form.biology_serology_hcv = 'negative';
+            form.biology_serology_vzv = 'positive';
+            form.biology_serology_cmv = 'negative';
+            form.biology_serology_ebv = 'positive';
+            form.biology_serology_jcv = 'negative';
             form.biology_other = '';
             form.iepp_sample_type = 'sang_et_lcr';
             form.iepp_result = 'Profil de type 2 : Synthèse intrathécale exclusive d\'IgG';
@@ -472,7 +497,7 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <!-- Anti-nucléaires -->
                         <div class="space-y-1.5">
                             <Label for="biology_anti_antinucleaire" class="text-xs font-medium">
@@ -516,27 +541,145 @@ const submit = () => {
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
 
-                        <!-- Sérologie VHB -->
-                        <div class="space-y-1.5">
-                            <Label for="biology_serology_hbv" class="text-xs font-medium">
-                                Sérologie VHB (Hépatite B)
-                            </Label>
-                            <Select v-model="form.biology_serology_hbv">
-                                <SelectTrigger id="biology_serology_hbv" class="h-9 text-xs">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem
-                                        v-for="opt in biologicalStatusOptions"
-                                        :key="opt.value"
-                                        :value="opt.value"
-                                        class="text-xs"
-                                    >
-                                        {{ opt.label }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                    <!-- Sérologies virales & pré-thérapeutiques (Cahier des charges p.6) -->
+                    <div class="pt-2 border-t border-border/40 space-y-2">
+                        <Label class="text-xs font-semibold text-foreground uppercase tracking-wider block">
+                            Sérologies Virales & Bilan Infectieux Pré-thérapeutique
+                        </Label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <!-- VHB -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_hbv" class="text-xs font-medium">
+                                    Sérologie VHB (Hépatite B)
+                                </Label>
+                                <Select v-model="form.biology_serology_hbv">
+                                    <SelectTrigger id="biology_serology_hbv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- VHC -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_hcv" class="text-xs font-medium">
+                                    Sérologie VHC (Hépatite C)
+                                </Label>
+                                <Select v-model="form.biology_serology_hcv">
+                                    <SelectTrigger id="biology_serology_hcv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- VZV -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_vzv" class="text-xs font-medium">
+                                    Sérologie VZV (Varicelle)
+                                </Label>
+                                <Select v-model="form.biology_serology_vzv">
+                                    <SelectTrigger id="biology_serology_vzv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- CMV -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_cmv" class="text-xs font-medium">
+                                    Sérologie CMV
+                                </Label>
+                                <Select v-model="form.biology_serology_cmv">
+                                    <SelectTrigger id="biology_serology_cmv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- EBV -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_ebv" class="text-xs font-medium">
+                                    Sérologie EBV
+                                </Label>
+                                <Select v-model="form.biology_serology_ebv">
+                                    <SelectTrigger id="biology_serology_ebv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <!-- Virus JC -->
+                            <div class="space-y-1.5">
+                                <Label for="biology_serology_jcv" class="text-xs font-medium">
+                                    Sérologie Virus JC (LEMP)
+                                </Label>
+                                <Select v-model="form.biology_serology_jcv">
+                                    <SelectTrigger id="biology_serology_jcv" class="h-9 text-xs">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem
+                                            v-for="opt in biologicalStatusOptions"
+                                            :key="opt.value"
+                                            :value="opt.value"
+                                            class="text-xs"
+                                        >
+                                            {{ opt.label }}
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
 

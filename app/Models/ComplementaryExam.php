@@ -26,6 +26,11 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $biology_anti_antinucleaire
  * @property string|null $biology_anti_bgsa
  * @property string|null $biology_serology_hbv
+ * @property string|null $biology_serology_hcv
+ * @property string|null $biology_serology_vzv
+ * @property string|null $biology_serology_cmv
+ * @property string|null $biology_serology_ebv
+ * @property string|null $biology_serology_jcv
  * @property string|null $biology_other
  * @property string|null $iepp_sample_type
  * @property string|null $iepp_result
@@ -49,6 +54,11 @@ use Spatie\Activitylog\Support\LogOptions;
     'biology_anti_antinucleaire',
     'biology_anti_bgsa',
     'biology_serology_hbv',
+    'biology_serology_hcv',
+    'biology_serology_vzv',
+    'biology_serology_cmv',
+    'biology_serology_ebv',
+    'biology_serology_jcv',
     'biology_other',
     'iepp_sample_type',
     'iepp_result',
