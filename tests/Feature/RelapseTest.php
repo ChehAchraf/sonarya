@@ -27,10 +27,14 @@ test('authenticated user can store a new relapse for a patient', function () {
         'start_date' => '2025-02-10',
         'end_date' => '2025-02-25',
         'symptoms' => 'Névrite optique rétrobulbaire gauche aiguë avec baisse visuelle à 2/10',
+        'severity' => 'severe',
         'is_before_diagnosis' => false,
         'treatment_administered' => 'Bolus Solumédrol 1g/j IV x 3 jours',
         'administration_route' => 'Intraveineuse (IV)',
         'clinical_recovery' => 'Complète',
+        'edss_before_relapse' => 1.5,
+        'edss_after_relapse' => 3.5,
+        'edss_evaluation_date' => '2025-03-01',
         'sequelae' => null,
         'hospitalization_required' => true,
         'notes' => 'Excellente tolérance aux corticoïdes, récupération visuelle ad integrum.',
@@ -46,6 +50,10 @@ test('authenticated user can store a new relapse for a patient', function () {
 
     $relapse = $patient->relapses->first();
     expect($relapse->symptoms)->toBe('Névrite optique rétrobulbaire gauche aiguë avec baisse visuelle à 2/10')
+        ->and($relapse->severity)->toBe('severe')
+        ->and((float) $relapse->edss_before_relapse)->toBe(1.5)
+        ->and((float) $relapse->edss_after_relapse)->toBe(3.5)
+        ->and($relapse->edss_evaluation_date?->format('Y-m-d'))->toBe('2025-03-01')
         ->and($relapse->start_date?->format('Y-m-d'))->toBe('2025-02-10')
         ->and($relapse->end_date?->format('Y-m-d'))->toBe('2025-02-25')
         ->and($relapse->treatment_administered)->toBe('Bolus Solumédrol 1g/j IV x 3 jours')
@@ -94,6 +102,21 @@ test('store relapse validates end date cannot precede start date', function () {
     ]);
 
     $response->assertSessionHasErrors(['end_date']);
+});
+
+test('store relapse validates edss range and severity values', function () {
+    $user = User::factory()->create();
+    $patient = Patient::factory()->create();
+
+    $response = $this->actingAs($user)->post("/patients/{$patient->id}/relapses", [
+        'start_date' => '2025-03-10',
+        'symptoms' => 'Myélite aiguë',
+        'severity' => 'invalide_statut',
+        'edss_before_relapse' => 12.5,
+        'edss_after_relapse' => -1.0,
+    ]);
+
+    $response->assertSessionHasErrors(['severity', 'edss_before_relapse', 'edss_after_relapse']);
 });
 
 test('authenticated user can update an existing relapse', function () {

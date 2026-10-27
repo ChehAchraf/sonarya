@@ -13,6 +13,7 @@ import {
     FileSpreadsheet,
     FileText,
     Filter,
+    Flame,
     FlaskConical,
     Layers,
     Pill,
@@ -23,6 +24,7 @@ import {
     Sparkles,
     Stethoscope,
     TestTube,
+    TrendingUp,
     UploadCloud,
     Users,
     X,
@@ -111,6 +113,15 @@ type Statistics = {
     mri_total_count: number;
     mri_sep_protocol_count: number;
     mri_sep_protocol_rate: number;
+    total_relapses?: number;
+    avg_relapses_per_patient?: number;
+    relapse_complete_recovery_rate?: number;
+    cohort_arr?: string;
+    relapse_edss_correlation?: {
+        group_0: { patients_count: number; mean_edss_delta: number };
+        group_1_2: { patients_count: number; mean_edss_delta: number };
+        group_3_plus: { patients_count: number; mean_edss_delta: number };
+    };
 };
 
 type FilterState = {
@@ -469,6 +480,106 @@ defineOptions({
                 </p>
             </Card>
         </div>
+
+        <!-- COHORT RELAPSE FREQUENCY & EDSS PROGRESSION ANALYSIS (Vue Statistique Cohorte) -->
+        <Card class="border-border shadow-2xs overflow-hidden bg-gradient-to-r from-card via-card to-indigo-500/5">
+            <CardHeader class="pb-3 border-b border-border/50">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <div class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                            <TrendingUp class="size-4" />
+                        </div>
+                        <div>
+                            <CardTitle class="text-sm font-semibold flex items-center gap-2">
+                                <span>Analyse Statistique : Relation Poussées & Évolution du Handicap (EDSS)</span>
+                                <Badge variant="outline" class="text-[10px] font-mono">Cohorte de Recherche</Badge>
+                            </CardTitle>
+                            <CardDescription class="text-xs">
+                                Corrélation entre la fréquence des poussées aiguës, le taux annualisé (ARR) et la progression longitudinale de l'EDSS
+                            </CardDescription>
+                        </div>
+                    </div>
+
+                    <!-- Quick Cohort ARR and Recovery Badges -->
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <div class="px-2.5 py-1 rounded-md bg-teal-500/10 border border-teal-500/20 text-xs">
+                            <span class="text-[10px] text-muted-foreground mr-1.5">ARR Cohorte :</span>
+                            <span class="font-mono font-bold text-teal-700 dark:text-teal-300">{{ statistics.cohort_arr ?? '0.00' }}</span>
+                            <span class="text-[10px] text-muted-foreground"> /an</span>
+                        </div>
+                        <div class="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs">
+                            <span class="text-[10px] text-muted-foreground mr-1.5">Récup. Complète :</span>
+                            <span class="font-mono font-bold text-emerald-700 dark:text-emerald-300">{{ statistics.relapse_complete_recovery_rate ?? 0 }}%</span>
+                        </div>
+                        <div class="px-2.5 py-1 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-xs">
+                            <span class="text-[10px] text-muted-foreground mr-1.5">Total Poussées :</span>
+                            <span class="font-mono font-bold text-indigo-700 dark:text-indigo-300">{{ statistics.total_relapses ?? 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </CardHeader>
+
+            <CardContent class="pt-4 pb-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <!-- Strata 1: 0 Poussées -->
+                    <div class="p-3 rounded-xl border border-border/70 bg-card/70 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-foreground">Groupe 0 Poussée (Stabilité clinique)</span>
+                            <Badge variant="outline" class="font-mono text-[10px]">
+                                {{ statistics.relapse_edss_correlation?.group_0.patients_count ?? 0 }} patients
+                            </Badge>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xl font-bold font-mono" :class="(statistics.relapse_edss_correlation?.group_0.mean_edss_delta ?? 0) > 0 ? 'text-rose-600' : 'text-emerald-600'">
+                                {{ (statistics.relapse_edss_correlation?.group_0.mean_edss_delta ?? 0) > 0 ? '+' : '' }}{{ statistics.relapse_edss_correlation?.group_0.mean_edss_delta ?? 0 }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">points EDSS moyens</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground leading-snug">
+                            Patients en rémission clinique prolongée sans épisode aigu documenté.
+                        </p>
+                    </div>
+
+                    <!-- Strata 2: 1 à 2 Poussées -->
+                    <div class="p-3 rounded-xl border border-border/70 bg-card/70 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-foreground">Groupe 1 à 2 Poussées (Activité modérée)</span>
+                            <Badge variant="outline" class="font-mono text-[10px]">
+                                {{ statistics.relapse_edss_correlation?.group_1_2.patients_count ?? 0 }} patients
+                            </Badge>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xl font-bold font-mono" :class="(statistics.relapse_edss_correlation?.group_1_2.mean_edss_delta ?? 0) > 0 ? 'text-rose-600' : 'text-emerald-600'">
+                                {{ (statistics.relapse_edss_correlation?.group_1_2.mean_edss_delta ?? 0) > 0 ? '+' : '' }}{{ statistics.relapse_edss_correlation?.group_1_2.mean_edss_delta ?? 0 }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">points EDSS moyens</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground leading-snug">
+                            Impact modéré avec potentiel de récupération ad integrum post-corticothérapie.
+                        </p>
+                    </div>
+
+                    <!-- Strata 3: ≥ 3 Poussées -->
+                    <div class="p-3 rounded-xl border border-border/70 bg-card/70 space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="font-semibold text-foreground">Groupe ≥ 3 Poussées (Haute activité)</span>
+                            <Badge variant="outline" class="font-mono text-[10px] bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/30">
+                                {{ statistics.relapse_edss_correlation?.group_3_plus.patients_count ?? 0 }} patients
+                            </Badge>
+                        </div>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-xl font-bold font-mono" :class="(statistics.relapse_edss_correlation?.group_3_plus.mean_edss_delta ?? 0) > 0 ? 'text-rose-600' : 'text-emerald-600'">
+                                {{ (statistics.relapse_edss_correlation?.group_3_plus.mean_edss_delta ?? 0) > 0 ? '+' : '' }}{{ statistics.relapse_edss_correlation?.group_3_plus.mean_edss_delta ?? 0 }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">points EDSS moyens</span>
+                        </div>
+                        <p class="text-[11px] text-muted-foreground leading-snug">
+                            Activité inflammatoire récurrente corrélée à l'accumulation de handicap résiduel.
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
 
         <!-- MULTICRITERIA FILTER PANEL -->
         <Card class="border-border shadow-2xs">

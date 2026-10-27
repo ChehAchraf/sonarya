@@ -29,6 +29,7 @@ class RelapseFactory extends Factory
                 'Diplopie horizontale et ophtalmoplégie internucléaire',
                 'Syndrome cérébelleux aigu avec instabilité majeure à la marche',
             ]),
+            'severity' => fake()->randomElement(['legere', 'moderee', 'severe']),
             'is_before_diagnosis' => fake()->boolean(30),
             'treatment_administered' => fake()->randomElement([
                 'Bolus Solumédrol 1g/j IV x 3 jours',
@@ -38,6 +39,9 @@ class RelapseFactory extends Factory
             ]),
             'administration_route' => 'Intraveineuse (IV)',
             'clinical_recovery' => fake()->randomElement(['Complète', 'Incomplète', 'Nulle']),
+            'edss_before_relapse' => fake()->randomFloat(1, 0, 6),
+            'edss_after_relapse' => fake()->randomFloat(1, 0, 7),
+            'edss_evaluation_date' => fake()->dateTimeBetween('-2 years', 'now')->format('Y-m-d'),
             'sequelae' => null,
             'hospitalization_required' => fake()->boolean(25),
             'notes' => fake()->boolean(30) ? fake()->sentence() : null,

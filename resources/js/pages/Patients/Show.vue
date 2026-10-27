@@ -131,10 +131,15 @@ type Relapse = {
     end_date_raw?: string | null;
     duration_days?: number | null;
     symptoms: string;
+    severity?: 'legere' | 'moderee' | 'severe' | string | null;
     is_before_diagnosis: boolean;
     treatment_administered: string | null;
     administration_route: string | null;
     clinical_recovery: string | null;
+    edss_before_relapse?: number | string | null;
+    edss_after_relapse?: number | string | null;
+    edss_evaluation_date?: string | null;
+    edss_evaluation_date_raw?: string | null;
     sequelae: string | null;
     hospitalization_required: boolean;
     notes: string | null;
@@ -1873,8 +1878,11 @@ defineOptions({
 
                 <!-- Healthcare Relapse Dynamic Chart -->
                 <RelapseChart
-                    v-if="patient.relapses.length > 0"
+                    v-if="patient.relapses.length > 0 || (patient.clinical_exams && patient.clinical_exams.length > 0)"
                     :relapses="patient.relapses"
+                    :clinical-exams="patient.clinical_exams || []"
+                    :consultations="patient.consultations || []"
+                    :disease-profile="patient.disease_profile"
                     :diagnosis-date="patient.disease_profile?.diagnosis_date"
                 />
 
@@ -1900,6 +1908,21 @@ defineOptions({
                                     </div>
                                     <div v-if="relapse.duration_days !== null && relapse.duration_days !== undefined" class="text-[11px] text-muted-foreground font-mono">
                                         {{ relapse.duration_days }} jours
+                                    </div>
+                                    <div v-if="relapse.severity" class="mt-1">
+                                        <Badge
+                                            variant="outline"
+                                            :class="[
+                                                'text-[10px] px-1.5 py-0 font-medium',
+                                                relapse.severity === 'severe'
+                                                    ? 'border-rose-500/40 text-rose-700 dark:text-rose-400 bg-rose-500/10'
+                                                    : relapse.severity === 'moderee'
+                                                    ? 'border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-500/10'
+                                                    : 'border-emerald-500/40 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10'
+                                            ]"
+                                        >
+                                            {{ relapse.severity === 'severe' ? 'Sévère' : relapse.severity === 'moderee' ? 'Modérée' : 'Légère' }}
+                                        </Badge>
                                     </div>
                                 </TableCell>
                                 <TableCell class="text-sm text-foreground">
@@ -1941,6 +1964,18 @@ defineOptions({
                                     >
                                         {{ relapse.clinical_recovery || 'Inconnue' }}
                                     </span>
+                                    <div
+                                        v-if="relapse.edss_before_relapse !== null || relapse.edss_after_relapse !== null"
+                                        class="mt-1 text-[11px] font-mono text-muted-foreground flex items-center gap-1"
+                                    >
+                                        <span class="font-semibold text-foreground">EDSS :</span>
+                                        <span>{{ relapse.edss_before_relapse !== null ? relapse.edss_before_relapse : '—' }}</span>
+                                        <span>→</span>
+                                        <span class="font-bold text-foreground">{{ relapse.edss_after_relapse !== null ? relapse.edss_after_relapse : '—' }}</span>
+                                        <span v-if="relapse.edss_evaluation_date" class="text-[10px] text-muted-foreground" :title="`Évalué le ${relapse.edss_evaluation_date}`">
+                                            ({{ relapse.edss_evaluation_date }})
+                                        </span>
+                                    </div>
                                 </TableCell>
                                 <TableCell>
                                     <span :class="relapse.hospitalization_required ? 'text-amber-600 dark:text-amber-400 font-semibold text-xs' : 'text-muted-foreground text-xs'">

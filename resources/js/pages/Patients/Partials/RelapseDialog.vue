@@ -12,6 +12,7 @@ import {
     Pill,
     Save,
     Stethoscope,
+    TrendingUp,
     X,
 } from '@lucide/vue';
 import { computed, watch } from 'vue';
@@ -49,10 +50,15 @@ export type RelapseFormData = {
     end_date_raw?: string | null;
     duration_days?: number | null;
     symptoms: string;
+    severity?: 'legere' | 'moderee' | 'severe' | string | null;
     is_before_diagnosis: boolean;
     treatment_administered: string | null;
     administration_route: string | null;
     clinical_recovery: string | null;
+    edss_before_relapse?: number | string | null;
+    edss_after_relapse?: number | string | null;
+    edss_evaluation_date?: string | null;
+    edss_evaluation_date_raw?: string | null;
     sequelae: string | null;
     hospitalization_required: boolean;
     notes: string | null;
@@ -73,10 +79,14 @@ const form = useForm({
     start_date: '',
     end_date: '',
     symptoms: '',
+    severity: 'moderee' as 'legere' | 'moderee' | 'severe' | string,
     is_before_diagnosis: false,
     treatment_administered: 'Bolus Solumédrol 1g/j IV x 3 jours',
     administration_route: 'Intraveineuse (IV)',
     clinical_recovery: 'Complète',
+    edss_before_relapse: '' as number | string,
+    edss_after_relapse: '' as number | string,
+    edss_evaluation_date: '',
     sequelae: '',
     hospitalization_required: false,
     notes: '',
@@ -91,10 +101,14 @@ watch(
                 form.start_date = props.relapse.start_date_raw || '';
                 form.end_date = props.relapse.end_date_raw || '';
                 form.symptoms = props.relapse.symptoms || '';
+                form.severity = props.relapse.severity || 'moderee';
                 form.is_before_diagnosis = Boolean(props.relapse.is_before_diagnosis);
                 form.treatment_administered = props.relapse.treatment_administered || '';
                 form.administration_route = props.relapse.administration_route || 'Intraveineuse (IV)';
                 form.clinical_recovery = props.relapse.clinical_recovery || 'Complète';
+                form.edss_before_relapse = props.relapse.edss_before_relapse !== null && props.relapse.edss_before_relapse !== undefined ? props.relapse.edss_before_relapse : '';
+                form.edss_after_relapse = props.relapse.edss_after_relapse !== null && props.relapse.edss_after_relapse !== undefined ? props.relapse.edss_after_relapse : '';
+                form.edss_evaluation_date = props.relapse.edss_evaluation_date_raw || '';
                 form.sequelae = props.relapse.sequelae || '';
                 form.hospitalization_required = Boolean(props.relapse.hospitalization_required);
                 form.notes = props.relapse.notes || '';
@@ -103,10 +117,14 @@ watch(
                 form.start_date = '';
                 form.end_date = '';
                 form.symptoms = '';
+                form.severity = 'moderee';
                 form.is_before_diagnosis = false;
                 form.treatment_administered = 'Bolus Solumédrol 1g/j IV x 3 jours';
                 form.administration_route = 'Intraveineuse (IV)';
                 form.clinical_recovery = 'Complète';
+                form.edss_before_relapse = '';
+                form.edss_after_relapse = '';
+                form.edss_evaluation_date = '';
                 form.sequelae = '';
                 form.hospitalization_required = false;
                 form.notes = '';
@@ -328,6 +346,59 @@ const submit = () => {
                         required
                     />
                     <InputError :message="form.errors.symptoms" />
+
+                    <!-- Sévérité Clinique de la Poussée -->
+                    <div class="space-y-1.5 pt-2">
+                        <Label class="text-xs font-semibold text-foreground flex items-center justify-between">
+                            <span>Sévérité Clinique de la Poussée</span>
+                            <span class="text-[11px] text-muted-foreground font-normal">Impact fonctionnel aigu</span>
+                        </Label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button
+                                type="button"
+                                @click="form.severity = 'legere'"
+                                :class="[
+                                    'px-2.5 py-2 rounded-lg border text-xs font-medium transition-all text-center flex flex-col items-center gap-1',
+                                    form.severity === 'legere'
+                                        ? 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-semibold shadow-xs'
+                                        : 'bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/60'
+                                ]"
+                            >
+                                <span class="size-2 rounded-full bg-emerald-500"></span>
+                                <span>Légère</span>
+                                <span class="text-[9px] opacity-75">Sensitif / minime</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="form.severity = 'moderee'"
+                                :class="[
+                                    'px-2.5 py-2 rounded-lg border text-xs font-medium transition-all text-center flex flex-col items-center gap-1',
+                                    form.severity === 'moderee'
+                                        ? 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-300 font-semibold shadow-xs'
+                                        : 'bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/60'
+                                ]"
+                            >
+                                <span class="size-2 rounded-full bg-amber-500"></span>
+                                <span>Modérée</span>
+                                <span class="text-[9px] opacity-75">Gêne motrice / visuelle</span>
+                            </button>
+                            <button
+                                type="button"
+                                @click="form.severity = 'severe'"
+                                :class="[
+                                    'px-2.5 py-2 rounded-lg border text-xs font-medium transition-all text-center flex flex-col items-center gap-1',
+                                    form.severity === 'severe'
+                                        ? 'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-semibold shadow-xs'
+                                        : 'bg-muted/30 border-border/70 text-muted-foreground hover:bg-muted/60'
+                                ]"
+                            >
+                                <span class="size-2 rounded-full bg-rose-500"></span>
+                                <span>Sévère</span>
+                                <span class="text-[9px] opacity-75">Déficit majeur / grabataire</span>
+                            </button>
+                        </div>
+                        <InputError :message="form.errors.severity" />
+                    </div>
                 </div>
 
                 <Separator />
@@ -475,6 +546,96 @@ const submit = () => {
                             class="text-xs"
                         />
                         <InputError :message="form.errors.notes" />
+                    </div>
+                </div>
+
+                <Separator />
+
+                <!-- Section 5: Évaluation EDSS (Avant & Après la Poussée) -->
+                <div class="space-y-3 p-3.5 rounded-xl bg-muted/30 border border-border/70">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <TrendingUp class="size-3.5 text-primary" />
+                            <span>Suivi du Handicap EDSS (Échelle 0 à 10)</span>
+                        </h4>
+                        <span class="text-[10px] font-mono text-muted-foreground">Recommandation clinique</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Permet de distinguer l'aggravation transitoire pendant la poussée du handicap résiduel stabilisé après récupération.
+                    </p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <!-- EDSS Avant la poussée -->
+                        <div class="space-y-1.5">
+                            <Label for="edss_before_relapse" class="text-xs font-medium">
+                                EDSS Avant Poussée <span class="text-muted-foreground text-[10px]">(si dispo)</span>
+                            </Label>
+                            <Input
+                                id="edss_before_relapse"
+                                v-model="form.edss_before_relapse"
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                max="10"
+                                placeholder="ex: 1.5"
+                                class="font-mono bg-background"
+                            />
+                            <InputError :message="form.errors.edss_before_relapse" />
+                        </div>
+
+                        <!-- EDSS Après la poussée -->
+                        <div class="space-y-1.5">
+                            <Label for="edss_after_relapse" class="text-xs font-medium">
+                                EDSS Après Poussée <span class="text-muted-foreground text-[10px]">(Post-récup.)</span>
+                            </Label>
+                            <Input
+                                id="edss_after_relapse"
+                                v-model="form.edss_after_relapse"
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                max="10"
+                                placeholder="ex: 2.0"
+                                class="font-mono bg-background"
+                            />
+                            <InputError :message="form.errors.edss_after_relapse" />
+                        </div>
+
+                        <!-- Date d'évaluation EDSS -->
+                        <div class="space-y-1.5">
+                            <Label for="edss_evaluation_date" class="text-xs font-medium">
+                                Date Réelle Évaluation EDSS
+                            </Label>
+                            <Input
+                                id="edss_evaluation_date"
+                                v-model="form.edss_evaluation_date"
+                                type="date"
+                                class="font-mono bg-background"
+                            />
+                            <InputError :message="form.errors.edss_evaluation_date" />
+                        </div>
+                    </div>
+
+                    <!-- Delta EDSS calculé en direct si les deux sont remplis -->
+                    <div
+                        v-if="form.edss_before_relapse !== '' && form.edss_after_relapse !== ''"
+                        class="text-xs px-2.5 py-1.5 rounded-lg border flex items-center justify-between"
+                        :class="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)
+                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400 font-medium'
+                            : Number(form.edss_after_relapse) < Number(form.edss_before_relapse)
+                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-medium'
+                            : 'bg-muted/50 border-border text-muted-foreground'"
+                    >
+                        <span>Variation nette du handicap :</span>
+                        <span class="font-mono font-bold">
+                            {{ Number(form.edss_after_relapse) - Number(form.edss_before_relapse) > 0 ? '+' : '' }}{{ (Number(form.edss_after_relapse) - Number(form.edss_before_relapse)).toFixed(1) }} points EDSS
+                            <span v-if="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)" class="ml-1 text-[10px] font-normal">
+                                (Progression / Aggravation résiduelle)
+                            </span>
+                            <span v-else-if="Number(form.edss_after_relapse) === Number(form.edss_before_relapse)" class="ml-1 text-[10px] font-normal">
+                                (Handicap stable après récupération)
+                            </span>
+                        </span>
                     </div>
                 </div>
 

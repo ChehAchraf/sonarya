@@ -18,10 +18,14 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $start_date
  * @property Carbon|null $end_date
  * @property string $symptoms
+ * @property string|null $severity
  * @property bool $is_before_diagnosis
  * @property string|null $treatment_administered
  * @property string|null $administration_route
  * @property string|null $clinical_recovery
+ * @property float|null $edss_before_relapse
+ * @property float|null $edss_after_relapse
+ * @property Carbon|null $edss_evaluation_date
  * @property string|null $sequelae
  * @property bool $hospitalization_required
  * @property string|null $notes
@@ -35,10 +39,14 @@ use Spatie\Activitylog\Support\LogOptions;
     'start_date',
     'end_date',
     'symptoms',
+    'severity',
     'is_before_diagnosis',
     'treatment_administered',
     'administration_route',
     'clinical_recovery',
+    'edss_before_relapse',
+    'edss_after_relapse',
+    'edss_evaluation_date',
     'sequelae',
     'hospitalization_required',
     'notes',
@@ -60,6 +68,9 @@ class Relapse extends Model
             'end_date' => 'date',
             'is_before_diagnosis' => 'boolean',
             'hospitalization_required' => 'boolean',
+            'edss_before_relapse' => 'decimal:1',
+            'edss_after_relapse' => 'decimal:1',
+            'edss_evaluation_date' => 'date',
         ];
     }
 

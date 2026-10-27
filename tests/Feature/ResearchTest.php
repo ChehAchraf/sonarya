@@ -64,6 +64,8 @@ test('authenticated user can view research index with cohort statistics', functi
             ->where('statistics.male_count', 1)
             ->where('statistics.clinical_forms.remittente', 1)
             ->where('statistics.clinical_forms.secondaire', 1)
+            ->has('statistics.relapse_edss_correlation')
+            ->has('statistics.cohort_arr')
             ->has('availableMolecules')
             ->has('availableCities')
         );
@@ -165,6 +167,8 @@ test('authenticated user can stream export in pseudonymized mode (Loi 09-08)', f
         ->and($csvContent)->toContain('TAILLE_CM')
         ->and($csvContent)->toContain('POIDS_KG')
         ->and($csvContent)->toContain('IMC')
+        ->and($csvContent)->toContain('TAUX_ANNUALISE_POUSSEES_ARR')
+        ->and($csvContent)->toContain('EDSS_AVANT_DERNIERE_POUSSEE')
         ->and($csvContent)->toContain('INDEX_KAPPA_IEPP')
         ->and($csvContent)->toContain('TEST_MARCHE_T25FW_SEC')
         ->and($csvContent)->toContain('DERNIERE_CONSULTATION_TYPE')

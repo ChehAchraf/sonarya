@@ -9,6 +9,7 @@ use App\Models\Consultation;
 use App\Models\DiseaseProfile;
 use App\Models\MriExam;
 use App\Models\Patient;
+use App\Models\Relapse;
 use App\Models\Treatment;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -151,6 +152,7 @@ class ResearchController extends Controller
             ->with([
                 'diseaseProfile',
                 'medicalHistory',
+                'relapses' => fn ($q) => $q->orderBy('start_date'),
                 'clinicalExams' => fn ($q) => $q->latest('exam_date'),
                 'treatments' => fn ($q) => $q->latest('start_date'),
                 'complementaryExams' => fn ($q) => $q->latest('exam_date'),
@@ -211,6 +213,13 @@ class ResearchController extends Controller
                 'TEST_MARCHE_T25FW_SEC',
                 'TEST_9HPT_SEC',
                 'NB_TOTAL_POUSSEES',
+                'TAUX_ANNUALISE_POUSSEES_ARR',
+                'NB_POUSSEES_SEVERES',
+                'NB_POUSSEES_AVEC_SEQUELLES',
+                'EDSS_AVANT_DERNIERE_POUSSEE',
+                'EDSS_APRES_DERNIERE_POUSSEE',
+                'DELTA_EDSS_DERNIERE_POUSSEE',
+                'DATE_EVAL_EDSS_POST_POUSSEE',
                 'TRAITEMENT_FOND_ACTUEL',
                 'TRAITEMENT_CLASSE',
                 'TRAITEMENT_STATUT',
@@ -267,6 +276,13 @@ class ResearchController extends Controller
                 'TEST_MARCHE_T25FW_SEC',
                 'TEST_9HPT_SEC',
                 'NB_TOTAL_POUSSEES',
+                'TAUX_ANNUALISE_POUSSEES_ARR',
+                'NB_POUSSEES_SEVERES',
+                'NB_POUSSEES_AVEC_SEQUELLES',
+                'EDSS_AVANT_DERNIERE_POUSSEE',
+                'EDSS_APRES_DERNIERE_POUSSEE',
+                'DELTA_EDSS_DERNIERE_POUSSEE',
+                'DATE_EVAL_EDSS_POST_POUSSEE',
                 'TRAITEMENT_FOND_ACTUEL',
                 'TRAITEMENT_CLASSE',
                 'TRAITEMENT_STATUT',
@@ -361,6 +377,27 @@ class ResearchController extends Controller
                 $mriSepCompliant = $mriSepCount > 0 ? 1 : ($mriTotal > 0 ? 0 : '');
                 $mriSepNominal = $mriTotal === 0 ? 'Aucune IRM' : ($mriSepCount === $mriTotal ? "Conforme ({$mriSepCount}/{$mriTotal})" : ($mriSepCount > 0 ? "Partiel ({$mriSepCount}/{$mriTotal})" : "Non conforme ({$mriTotal} IRM)"));
 
+                // Relapse, ARR, and EDSS evolution variables
+                $relapsesCount = $p->relapses->count();
+                $diseaseYears = 1;
+                if ($dp instanceof DiseaseProfile) {
+                    $refDate = $dp->diagnosis_date ?? $dp->first_symptom_date;
+                    if ($refDate) {
+                        $diseaseYears = max(1, now()->diffInYears($refDate));
+                    }
+                }
+                $arrVal = $relapsesCount > 0 ? round($relapsesCount / $diseaseYears, 2) : 0;
+                $severeCount = $p->relapses->where('severity', 'severe')->count();
+                $sequelaeCount = $p->relapses->filter(fn ($r) => $r->sequelae !== null || str_contains(strtolower($r->clinical_recovery ?? ''), 'sequell'))->count();
+
+                $latestRelapse = $p->relapses->last();
+                $edssBeforeLastRelapse = ($latestRelapse && $latestRelapse->edss_before_relapse !== null) ? $latestRelapse->edss_before_relapse : '';
+                $edssAfterLastRelapse = ($latestRelapse && $latestRelapse->edss_after_relapse !== null) ? $latestRelapse->edss_after_relapse : '';
+                $deltaEdssLastRelapse = ($latestRelapse && $latestRelapse->edss_before_relapse !== null && $latestRelapse->edss_after_relapse !== null)
+                    ? round($latestRelapse->edss_after_relapse - $latestRelapse->edss_before_relapse, 1)
+                    : '';
+                $evalDateLastRelapse = $latestRelapse?->edss_evaluation_date?->format('d/m/Y') ?? '';
+
                 if ($pseudonymize) {
                     $row = [
                         'SEP-'.substr(hash('sha256', (string) ($p->id.config('app.key'))), 0, 6),
@@ -383,7 +420,14 @@ class ResearchController extends Controller
                         $deltaEdss ?? '',
                         $t25fwVal,
                         $nineHptVal,
-                        $p->relapses->count(),
+                        $relapsesCount,
+                        $arrVal,
+                        $severeCount,
+                        $sequelaeCount,
+                        $edssBeforeLastRelapse,
+                        $edssAfterLastRelapse,
+                        $deltaEdssLastRelapse,
+                        $evalDateLastRelapse,
                         $treatmentName,
                         $treatmentClass,
                         $treatmentStatus,
@@ -441,7 +485,14 @@ class ResearchController extends Controller
                         $latestEdssVal ?? '',
                         $t25fwVal,
                         $nineHptVal,
-                        $p->relapses->count(),
+                        $relapsesCount,
+                        $arrVal,
+                        $severeCount,
+                        $sequelaeCount,
+                        $edssBeforeLastRelapse,
+                        $edssAfterLastRelapse,
+                        $deltaEdssLastRelapse,
+                        $evalDateLastRelapse,
                         $treatmentName,
                         $treatmentClass,
                         $treatmentStatus,
@@ -682,6 +733,15 @@ class ResearchController extends Controller
                 'mri_total_count' => 0,
                 'mri_sep_protocol_count' => 0,
                 'mri_sep_protocol_rate' => 0,
+                'total_relapses' => 0,
+                'avg_relapses_per_patient' => 0,
+                'relapse_complete_recovery_rate' => 0,
+                'cohort_arr' => '0.00',
+                'relapse_edss_correlation' => [
+                    'group_0' => ['patients_count' => 0, 'mean_edss_delta' => 0.0],
+                    'group_1_2' => ['patients_count' => 0, 'mean_edss_delta' => 0.0],
+                    'group_3_plus' => ['patients_count' => 0, 'mean_edss_delta' => 0.0],
+                ],
             ];
         }
 
@@ -719,6 +779,81 @@ class ResearchController extends Controller
         $mriSepProtocolCount = MriExam::query()->whereIn('patient_id', $cohortPatientIds)->where('sep_protocol_applied', true)->count();
         $mriSepProtocolRate = $mriTotalCount > 0 ? round(($mriSepProtocolCount / $mriTotalCount) * 100, 1) : 0;
 
+        // Relapse and EDSS Correlation across cohort
+        $totalRelapses = Relapse::query()->whereIn('patient_id', $cohortPatientIds)->count();
+        $avgRelapses = $total > 0 ? round($totalRelapses / $total, 2) : 0;
+        $completeRecoveryRelapses = Relapse::query()->whereIn('patient_id', $cohortPatientIds)->where('clinical_recovery', 'Complète')->count();
+        $completeRecoveryRate = $totalRelapses > 0 ? round(($completeRecoveryRelapses / $totalRelapses) * 100, 1) : 0;
+
+        // ARR across cohort
+        $patientsForArr = (clone $query)->with('diseaseProfile')->withCount('relapses')->get();
+        $sumArr = 0;
+        $countWithDiseaseDuration = 0;
+        foreach ($patientsForArr as $p) {
+            $refDate = $p->diseaseProfile?->diagnosis_date ?? $p->diseaseProfile?->first_symptom_date;
+            $durationYears = $refDate ? max(1, now()->diffInYears($refDate)) : 1;
+            $sumArr += ($p->relapses_count / $durationYears);
+            $countWithDiseaseDuration++;
+        }
+        $cohortArr = $countWithDiseaseDuration > 0 ? number_format($sumArr / $countWithDiseaseDuration, 2) : '0.00';
+
+        // Relation between Relapses count & EDSS Progression
+        $patientsForCorrelation = (clone $query)
+            ->with([
+                'diseaseProfile',
+                'clinicalExams' => fn ($q) => $q->latest('exam_date')->limit(1),
+            ])
+            ->withCount('relapses')
+            ->get();
+
+        $group0 = ['count' => 0, 'delta_sum' => 0.0, 'valid' => 0];
+        $group12 = ['count' => 0, 'delta_sum' => 0.0, 'valid' => 0];
+        $group3plus = ['count' => 0, 'delta_sum' => 0.0, 'valid' => 0];
+
+        foreach ($patientsForCorrelation as $pat) {
+            $initEdss = $pat->diseaseProfile?->initial_edss !== null ? (float) $pat->diseaseProfile->initial_edss : null;
+            $latestExam = $pat->clinicalExams->first();
+            $latestEdss = ($latestExam && $latestExam->edss_score !== null) ? (float) $latestExam->edss_score : $initEdss;
+
+            $hasDelta = ($initEdss !== null && $latestEdss !== null);
+            $delta = $hasDelta ? ($latestEdss - $initEdss) : 0;
+
+            if ($pat->relapses_count === 0) {
+                $group0['count']++;
+                if ($hasDelta) {
+                    $group0['delta_sum'] += $delta;
+                    $group0['valid']++;
+                }
+            } elseif ($pat->relapses_count <= 2) {
+                $group12['count']++;
+                if ($hasDelta) {
+                    $group12['delta_sum'] += $delta;
+                    $group12['valid']++;
+                }
+            } else {
+                $group3plus['count']++;
+                if ($hasDelta) {
+                    $group3plus['delta_sum'] += $delta;
+                    $group3plus['valid']++;
+                }
+            }
+        }
+
+        $relapseEdssCorrelation = [
+            'group_0' => [
+                'patients_count' => $group0['count'],
+                'mean_edss_delta' => $group0['valid'] > 0 ? round($group0['delta_sum'] / $group0['valid'], 2) : 0.0,
+            ],
+            'group_1_2' => [
+                'patients_count' => $group12['count'],
+                'mean_edss_delta' => $group12['valid'] > 0 ? round($group12['delta_sum'] / $group12['valid'], 2) : 0.0,
+            ],
+            'group_3_plus' => [
+                'patients_count' => $group3plus['count'],
+                'mean_edss_delta' => $group3plus['valid'] > 0 ? round($group3plus['delta_sum'] / $group3plus['valid'], 2) : 0.0,
+            ],
+        ];
+
         return [
             'total_patients' => $total,
             'female_count' => $femaleCount,
@@ -735,6 +870,11 @@ class ResearchController extends Controller
             'mri_total_count' => $mriTotalCount,
             'mri_sep_protocol_count' => $mriSepProtocolCount,
             'mri_sep_protocol_rate' => $mriSepProtocolRate,
+            'total_relapses' => $totalRelapses,
+            'avg_relapses_per_patient' => $avgRelapses,
+            'relapse_complete_recovery_rate' => $completeRecoveryRate,
+            'cohort_arr' => $cohortArr,
+            'relapse_edss_correlation' => $relapseEdssCorrelation,
         ];
     }
 }
