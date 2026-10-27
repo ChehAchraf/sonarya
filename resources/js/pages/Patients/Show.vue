@@ -7,6 +7,8 @@ import {
     Brain,
     Calendar,
     CheckCircle2,
+    ChevronLeft,
+    ChevronRight,
     Clock,
     Columns2,
     Crosshair,
@@ -37,7 +39,7 @@ import {
     Users,
     XCircle,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -321,6 +323,102 @@ type Props = {
 const props = defineProps<Props>();
 
 const activeTab = ref('general');
+
+// Tabs Horizontal Scroll & Navigation State
+const tabsContainerRef = ref<HTMLElement | null>(null);
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+
+const updateTabsScrollState = () => {
+    if (!tabsContainerRef.value) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.value;
+    canScrollLeft.value = scrollLeft > 4;
+    canScrollRight.value = scrollLeft + clientWidth < scrollWidth - 4;
+};
+
+const scrollTabs = (direction: 'left' | 'right') => {
+    if (!tabsContainerRef.value) return;
+    const scrollAmount = Math.max(220, Math.floor(tabsContainerRef.value.clientWidth * 0.55));
+    tabsContainerRef.value.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+    });
+};
+
+const onTabsWheel = (e: WheelEvent) => {
+    if (!tabsContainerRef.value) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.value;
+    const maxScroll = scrollWidth - clientWidth;
+
+    if (maxScroll <= 0) return;
+
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        const canScroll = (e.deltaY > 0 && scrollLeft < maxScroll) || (e.deltaY < 0 && scrollLeft > 0);
+        if (canScroll) {
+            e.preventDefault();
+            tabsContainerRef.value.scrollLeft += e.deltaY;
+            updateTabsScrollState();
+        }
+    }
+};
+
+// Mouse drag-to-scroll panning
+let isMouseDown = false;
+let dragStartX = 0;
+let dragStartScrollLeft = 0;
+let hasDraggedTabs = false;
+
+const onTabsMouseDown = (e: MouseEvent) => {
+    if (e.button !== 0 || !tabsContainerRef.value) return;
+    isMouseDown = true;
+    hasDraggedTabs = false;
+    dragStartX = e.pageX - tabsContainerRef.value.offsetLeft;
+    dragStartScrollLeft = tabsContainerRef.value.scrollLeft;
+};
+
+const onTabsMouseMove = (e: MouseEvent) => {
+    if (!isMouseDown || !tabsContainerRef.value) return;
+    const currentX = e.pageX - tabsContainerRef.value.offsetLeft;
+    const walk = (currentX - dragStartX) * 1.3;
+    if (Math.abs(walk) > 5) {
+        hasDraggedTabs = true;
+    }
+    tabsContainerRef.value.scrollLeft = dragStartScrollLeft - walk;
+    updateTabsScrollState();
+};
+
+const onTabsMouseUp = () => {
+    isMouseDown = false;
+};
+
+// Auto scroll active tab into view
+watch(activeTab, async () => {
+    await nextTick();
+    if (!tabsContainerRef.value) return;
+    const activeEl = tabsContainerRef.value.querySelector('[data-state="active"]') as HTMLElement | null;
+    if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        setTimeout(updateTabsScrollState, 250);
+    }
+});
+
+let tabsResizeObserver: ResizeObserver | null = null;
+
+onMounted(() => {
+    updateTabsScrollState();
+    if (tabsContainerRef.value && typeof ResizeObserver !== 'undefined') {
+        tabsResizeObserver = new ResizeObserver(() => {
+            updateTabsScrollState();
+        });
+        tabsResizeObserver.observe(tabsContainerRef.value);
+    }
+    window.addEventListener('resize', updateTabsScrollState);
+});
+
+onUnmounted(() => {
+    tabsResizeObserver?.disconnect();
+    window.removeEventListener('resize', updateTabsScrollState);
+});
 const isRelapseDialogOpen = ref(false);
 const selectedRelapseToEdit = ref<RelapseFormData | null>(null);
 
@@ -1147,82 +1245,148 @@ defineOptions({
             </div>
         </div>
 
-        <!-- Clinical Tabs Navigation -->
+        <!-- Clinical Tabs Navigation with Enhanced Horizontal Scrolling & Arrows -->
         <Tabs v-model="activeTab" class="w-full space-y-4">
-            <div class="border-b border-border pb-px overflow-x-auto no-scrollbar -mx-3 px-3 sm:mx-0 sm:px-0">
-                <TabsList class="h-10 bg-transparent p-0 gap-1 sm:gap-2 flex-nowrap w-max min-w-full sm:min-w-0 justify-start">
-                    <TabsTrigger
-                        value="general"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            <div class="relative border-b border-border pb-1 group">
+                <!-- Left Scroll Arrow Button -->
+                <transition
+                    enter-active-class="transition-opacity duration-200"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition-opacity duration-150"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <button
+                        v-if="canScrollLeft"
+                        type="button"
+                        @click="scrollTabs('left')"
+                        class="absolute -left-1 sm:left-0 top-1/2 -translate-y-1/2 z-20 flex size-7 sm:size-8 items-center justify-center rounded-full bg-background/95 hover:bg-background text-foreground border border-border shadow-md transition-all hover:scale-105 active:scale-95"
+                        title="Faire défiler vers la gauche"
+                        aria-label="Faire défiler les onglets vers la gauche"
                     >
-                        <User class="size-3.5 mr-1.5" />
-                        <span>État Civil & Fiche</span>
-                    </TabsTrigger>
+                        <ChevronLeft class="size-4" />
+                    </button>
+                </transition>
 
-                    <TabsTrigger
-                        value="timeline"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none font-semibold text-primary"
-                    >
-                        <Activity class="size-3.5 mr-1.5" />
-                        <span>Chronologie (Module 5)</span>
-                    </TabsTrigger>
+                <!-- Left Fade Gradient Indicator -->
+                <div
+                    v-if="canScrollLeft"
+                    class="pointer-events-none absolute left-0 top-0 bottom-1 w-8 sm:w-12 bg-gradient-to-r from-background via-background/80 to-transparent z-10"
+                />
 
-                    <TabsTrigger
-                        value="disease"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <History class="size-3.5 mr-1.5" />
-                        <span>Histoire & Antécédents</span>
-                    </TabsTrigger>
+                <!-- Scrollable Tabs Area -->
+                <div
+                    ref="tabsContainerRef"
+                    @scroll.passive="updateTabsScrollState"
+                    @wheel="onTabsWheel"
+                    @mousedown="onTabsMouseDown"
+                    @mousemove="onTabsMouseMove"
+                    @mouseup="onTabsMouseUp"
+                    @mouseleave="onTabsMouseUp"
+                    class="tabs-horizontal-scroll overflow-x-auto select-none -mx-2 px-6 sm:mx-0 sm:px-8 py-0.5 scroll-smooth"
+                >
+                    <TabsList class="h-10 bg-transparent p-0 gap-1 sm:gap-2 flex-nowrap w-max min-w-full sm:min-w-0 justify-start">
+                        <TabsTrigger
+                            value="general"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <User class="size-3.5 mr-1.5" />
+                            <span>État Civil & Fiche</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="relapses"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <HeartPulse class="size-3.5 mr-1.5" />
-                        <span>Poussées ({{ patient.relapses.length }})</span>
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="timeline"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none font-semibold text-primary"
+                        >
+                            <Activity class="size-3.5 mr-1.5" />
+                            <span>Chronologie (Module 5)</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="clinical"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <Stethoscope class="size-3.5 mr-1.5" />
-                        <span>Clinique & EDSS ({{ patient.clinical_exams.length }})</span>
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="disease"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <History class="size-3.5 mr-1.5" />
+                            <span>Histoire & Antécédents</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="mri"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <Crosshair class="size-3.5 mr-1.5" />
-                        <span>IRM ({{ patient.mri_exams.length }})</span>
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="relapses"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <HeartPulse class="size-3.5 mr-1.5" />
+                            <span>Poussées ({{ patient.relapses.length }})</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="treatments"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <Pill class="size-3.5 mr-1.5" />
-                        <span>Traitements ({{ patient.treatments.length }})</span>
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="clinical"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <Stethoscope class="size-3.5 mr-1.5" />
+                            <span>Clinique & EDSS ({{ patient.clinical_exams.length }})</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="consultations"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-                    >
-                        <Calendar class="size-3.5 mr-1.5" />
-                        <span>Suivi & Examens ({{ patient.consultations.length }})</span>
-                    </TabsTrigger>
+                        <TabsTrigger
+                            value="mri"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <Crosshair class="size-3.5 mr-1.5" />
+                            <span>IRM ({{ patient.mri_exams.length }})</span>
+                        </TabsTrigger>
 
-                    <TabsTrigger
-                        value="prognostic"
-                        class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        <TabsTrigger
+                            value="treatments"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <Pill class="size-3.5 mr-1.5" />
+                            <span>Traitements ({{ patient.treatments.length }})</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="consultations"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <Calendar class="size-3.5 mr-1.5" />
+                            <span>Suivi & Examens ({{ patient.consultations.length }})</span>
+                        </TabsTrigger>
+
+                        <TabsTrigger
+                            value="prognostic"
+                            class="rounded-none border-b-2 border-transparent px-3 py-2 text-xs sm:text-sm font-medium data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
+                        >
+                            <ShieldAlert class="size-3.5 mr-1.5" />
+                            <span>Pronostic (Module 8)</span>
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
+
+                <!-- Right Fade Gradient Indicator -->
+                <div
+                    v-if="canScrollRight"
+                    class="pointer-events-none absolute right-0 top-0 bottom-1 w-8 sm:w-12 bg-gradient-to-l from-background via-background/80 to-transparent z-10"
+                />
+
+                <!-- Right Scroll Arrow Button -->
+                <transition
+                    enter-active-class="transition-opacity duration-200"
+                    enter-from-class="opacity-0"
+                    enter-to-class="opacity-100"
+                    leave-active-class="transition-opacity duration-150"
+                    leave-from-class="opacity-100"
+                    leave-to-class="opacity-0"
+                >
+                    <button
+                        v-if="canScrollRight"
+                        type="button"
+                        @click="scrollTabs('right')"
+                        class="absolute -right-1 sm:right-0 top-1/2 -translate-y-1/2 z-20 flex size-7 sm:size-8 items-center justify-center rounded-full bg-background/95 hover:bg-background text-foreground border border-border shadow-md transition-all hover:scale-105 active:scale-95"
+                        title="Faire défiler vers la droite"
+                        aria-label="Faire défiler les onglets vers la droite"
                     >
-                        <ShieldAlert class="size-3.5 mr-1.5" />
-                        <span>Pronostic (Module 8)</span>
-                    </TabsTrigger>
-                </TabsList>
+                        <ChevronRight class="size-4" />
+                    </button>
+                </transition>
             </div>
 
             <!-- TAB 1: ÉTAT CIVIL & COORDONNÉES -->
