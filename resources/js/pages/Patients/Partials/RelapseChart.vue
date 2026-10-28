@@ -1,32 +1,14 @@
 <script setup lang="ts">
 import {
     Activity,
-    AlertCircle,
-    ArrowDownRight,
-    ArrowRight,
-    ArrowUpRight,
     BarChart3,
-    Calendar,
-    CheckCircle2,
-    Clock,
+    ChevronDown,
+    ChevronUp,
     Download,
     FileSpreadsheet,
-    FileText,
-    Flame,
-    HeartPulse,
-    HelpCircle,
     Info,
-    Minus,
-    Pill,
     Printer,
-    RotateCcw,
-    ShieldAlert,
-    ShieldCheck,
-    Sparkles,
-    Stethoscope,
-    TrendingDown,
     TrendingUp,
-    UserCheck,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
@@ -107,13 +89,28 @@ const props = withDefaults(defineProps<Props>(), {
     diagnosisDate: null,
 });
 
-// View switcher: Only 2 views permitted as mandated by user
-// 'edss_timeline': Courbe EDSS & Poussées (Modèle 3-phases à bandes et interpolation par morceaux)
+// View switcher: Only 2 clean views
+// 'edss_timeline': Courbe EDSS & Poussées
 // 'bars': Fréquence Annuelle (ARR)
 const activeView = ref<'edss_timeline' | 'bars'>('edss_timeline');
 
-// Toggle between patient real data and the doctor's protocol benchmark example
+// Toggle between patient real data and benchmark protocol example
 const dataSourceMode = ref<'real' | 'benchmark'>('real');
+
+// Collapsible section for methodology and formula
+const showMethodologyDetails = ref(false);
+
+// Active hovered element for interactive tooltip
+const hoveredInfo = ref<{
+    title: string;
+    date: string;
+    duration: string;
+    edssBefore: number | string;
+    edssPeak?: number | string;
+    edssAfter: number | string;
+    recovery?: string;
+    treatment?: string;
+} | null>(null);
 
 // Reference to SVG for PNG export
 const chartSvgRef = ref<SVGSVGElement | null>(null);
@@ -154,30 +151,23 @@ const sortedRelapses = computed(() => {
     });
 });
 
-// Determine default data mode based on available relapses
 const hasRealRelapsesWithData = computed(() => {
     return sortedRelapses.value.length > 0;
 });
 
-// Clinical recovery color styling
+// Styling helpers
 function getRecoveryStyle(recovery: string | null | undefined, hasSequelae: boolean) {
     if (hasSequelae || (recovery && recovery.toLowerCase().includes('sequell'))) {
         return {
             color: '#f43f5e',
-            bg: 'bg-rose-500/10 dark:bg-rose-950/40',
-            text: 'text-rose-700 dark:text-rose-400',
-            border: 'border-rose-500/30',
             bandBg: 'rgba(244, 63, 94, 0.12)',
             bandBorder: 'rgba(244, 63, 94, 0.35)',
-            label: 'Avec séquelles (récupération incomplète)',
+            label: 'Récupération incomplète avec séquelles',
         };
     }
     if (recovery && (recovery.toLowerCase().includes('incompl') || recovery.toLowerCase().includes('nulle'))) {
         return {
             color: '#f59e0b',
-            bg: 'bg-amber-500/10 dark:bg-amber-950/40',
-            text: 'text-amber-700 dark:text-amber-400',
-            border: 'border-amber-500/30',
             bandBg: 'rgba(245, 158, 11, 0.12)',
             bandBorder: 'rgba(245, 158, 11, 0.35)',
             label: 'Récupération incomplète',
@@ -185,47 +175,33 @@ function getRecoveryStyle(recovery: string | null | undefined, hasSequelae: bool
     }
     return {
         color: '#10b981',
-        bg: 'bg-emerald-500/10 dark:bg-emerald-950/40',
-        text: 'text-emerald-700 dark:text-emerald-400',
-        border: 'border-emerald-500/30',
         bandBg: 'rgba(16, 185, 129, 0.12)',
         bandBorder: 'rgba(16, 185, 129, 0.35)',
         label: 'Récupération complète',
     };
 }
 
-function getSeverityBadge(severity: string | null | undefined) {
-    if (severity === 'severe') {
-        return { label: 'Sévère', color: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30' };
-    }
-    if (severity === 'legere') {
-        return { label: 'Légère', color: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30' };
-    }
-    return { label: 'Modérée', color: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30' };
-}
-
 // -------------------------------------------------------------
-// THREE-PHASE PIECEWISE CURVE & SHADED BANDS MODEL
+// UNIFIED PIECEWISE CURVE & SHADED BANDS MODEL
 // -------------------------------------------------------------
 export type PhaseBand = {
     id: string;
-    type: 'relapse' | 'inter_relapse' | 'followup' | 'pre_baseline';
+    type: 'relapse' | 'inter_relapse' | 'followup';
     title: string;
-    subtitle: string;
+    shortTitle: string;
     durationLabel: string;
     colorBg: string;
     colorBorder: string;
     startX: number;
     endX: number;
     width: number;
-    edssBefore?: number;
+    rawDate?: string;
+    edssBefore: number;
     edssPeak?: number;
-    edssAfter?: number;
-    delta?: number;
+    edssAfter: number;
+    delta: number;
     recoveryLabel?: string;
     treatmentLabel?: string;
-    relapseId?: number;
-    index?: number;
 };
 
 export type CurvePoint = {
@@ -233,201 +209,198 @@ export type CurvePoint = {
     x: number;
     y: number;
     score: number;
-    label: string;
-    sublabel: string;
+    badgeLabel: string;
     phase: 't0_before' | 't1_start' | 't2_end' | 'plateau';
     color: string;
     dateFormatted: string;
+    showLabel: boolean;
 };
 
-// Unified Model Data Builder
 const piecewiseModelData = computed(() => {
-    // Mode real data vs Mode benchmark protocol example
     const useBenchmark = dataSourceMode.value === 'benchmark' || (!hasRealRelapsesWithData.value);
 
-    // SVG Canvas dimensions
-    const svgWidth = 980;
-    const svgHeight = 390;
-    const paddingLeft = 65;
-    const paddingRight = 45;
-    const plotTop = 60;
-    const plotBottom = 320;
+    const paddingLeft = 55;
+    const paddingRight = 40;
+    const plotTop = 45;
+    const plotBottom = 260;
     const plotHeight = plotBottom - plotTop;
-    const plotWidth = svgWidth - paddingLeft - paddingRight;
 
     if (useBenchmark) {
-        // EXACT BENCHMARK FROM DOCTOR'S SPECIFICATION & SCHEMATIC:
-        // Relapse 1: EDSS 0.5 (plateau 2 weeks) -> 2.0 (onset peak at J0) -> 1.0 (end at 2 weeks/J14).
-        // Inter-relapse remission: 8 weeks plateau at EDSS 1.0.
-        // Relapse 2: 3 weeks duration, onset peak EDSS 3.0 -> end recovery EDSS 2.0.
-        // Follow-up period: 6 weeks plateau at EDSS 2.0.
-        const totalDurationDays = 14 + 14 + 56 + 21 + 42; // 147 days total span
-        const timeToX = (relDay: number) => paddingLeft + ((relDay + 14) / totalDurationDays) * plotWidth;
+        // BENCHMARK PROTOCOL EXAMPLE (Cahier des charges)
+        // Clean normalized width of 900px
+        const svgWidth = 900;
+        const svgHeight = 310;
+        const plotWidth = svgWidth - paddingLeft - paddingRight;
 
-        // Dynamic Y scale: Max EDSS observed = 3.0, top axis = 3.5
+        // Visual layout with generous room per phase
+        const xT0 = paddingLeft + 15;
+        const xP1Start = paddingLeft + 90;
+        const xP1End = xP1Start + 130;
+        const xInterEnd = xP1End + 210;
+        const xP2Start = xInterEnd;
+        const xP2End = xP2Start + 140;
+        const xFollowEnd = xP2End + 170;
+
         const maxScore = 3.5;
         const edssToY = (score: number) => plotBottom - (Math.max(0, Math.min(maxScore, score)) / maxScore) * plotHeight;
 
-        // Bands definition
         const bands: PhaseBand[] = [
             {
-                id: 'band-p1',
+                id: 'b-p1',
                 type: 'relapse',
                 title: '1ère poussée',
-                subtitle: 'Durée : 2 semaines',
+                shortTitle: 'Poussée #1 (2 sem)',
                 durationLabel: '2 semaines (14 jours)',
-                colorBg: 'rgba(254, 226, 226, 0.75)', // soft rose/salmon
+                colorBg: 'rgba(254, 226, 226, 0.75)',
                 colorBorder: 'rgba(244, 63, 94, 0.45)',
-                startX: timeToX(0),
-                endX: timeToX(14),
-                width: timeToX(14) - timeToX(0),
+                startX: xP1Start,
+                endX: xP1End,
+                width: xP1End - xP1Start,
                 edssBefore: 0.5,
                 edssPeak: 2.0,
                 edssAfter: 1.0,
                 delta: 0.5,
                 recoveryLabel: 'Récupération partielle (+0.5 pt)',
                 treatmentLabel: 'Bolus Solumédrol 1g/j IV x 3j',
-                index: 1,
+                rawDate: 'J0 → J14',
             },
             {
-                id: 'band-inter',
+                id: 'b-inter',
                 type: 'inter_relapse',
-                title: 'Période entre les poussées',
-                subtitle: 'Durée : 8 semaines',
+                title: 'Période entre poussées',
+                shortTitle: 'Rémission (8 sem)',
                 durationLabel: '8 semaines (56 jours)',
-                colorBg: 'rgba(224, 242, 254, 0.65)', // soft blue
+                colorBg: 'rgba(224, 242, 254, 0.65)',
                 colorBorder: 'rgba(56, 189, 248, 0.4)',
-                startX: timeToX(14),
-                endX: timeToX(70),
-                width: timeToX(70) - timeToX(14),
+                startX: xP1End,
+                endX: xInterEnd,
+                width: xInterEnd - xP1End,
                 edssBefore: 1.0,
                 edssAfter: 1.0,
                 delta: 0.0,
                 recoveryLabel: 'Rémission clinique stable',
-                treatmentLabel: 'Interféron bêta-1a',
+                treatmentLabel: 'Avonex (Interféron)',
+                rawDate: 'J14 → J70',
             },
             {
-                id: 'band-p2',
+                id: 'b-p2',
                 type: 'relapse',
                 title: '2ème poussée',
-                subtitle: 'Durée : 3 semaines',
+                shortTitle: 'Poussée #2 (3 sem)',
                 durationLabel: '3 semaines (21 jours)',
-                colorBg: 'rgba(220, 252, 231, 0.75)', // soft emerald green
+                colorBg: 'rgba(220, 252, 231, 0.75)',
                 colorBorder: 'rgba(34, 197, 94, 0.45)',
-                startX: timeToX(70),
-                endX: timeToX(91),
-                width: timeToX(91) - timeToX(70),
+                startX: xP2Start,
+                endX: xP2End,
+                width: xP2End - xP2Start,
                 edssBefore: 1.0,
                 edssPeak: 3.0,
                 edssAfter: 2.0,
                 delta: 1.0,
                 recoveryLabel: 'Récupération incomplète (+1.0 pt)',
                 treatmentLabel: 'Bolus Solumédrol 1g/j IV x 5j',
-                index: 2,
+                rawDate: 'J70 → J91',
             },
             {
-                id: 'band-followup',
+                id: 'b-follow',
                 type: 'followup',
                 title: 'Période de suivi',
-                subtitle: 'Durée : 6 semaines',
+                shortTitle: 'Suivi (6 sem)',
                 durationLabel: '6 semaines (42 jours)',
-                colorBg: 'rgba(224, 242, 254, 0.65)', // soft blue
+                colorBg: 'rgba(224, 242, 254, 0.65)',
                 colorBorder: 'rgba(56, 189, 248, 0.4)',
-                startX: timeToX(91),
-                endX: timeToX(133),
-                width: timeToX(133) - timeToX(91),
+                startX: xP2End,
+                endX: xFollowEnd,
+                width: xFollowEnd - xP2End,
                 edssBefore: 2.0,
                 edssAfter: 2.0,
                 delta: 0.0,
-                recoveryLabel: 'Handicap stabilisé post-poussée',
-                treatmentLabel: 'Suivi neurologique',
+                recoveryLabel: 'Plateau résiduel stabilisé',
+                treatmentLabel: 'Contrôle neurologique',
+                rawDate: 'J91 → J133',
             },
         ];
 
-        // Key Points along the piecewise function
         const points: CurvePoint[] = [
             {
-                id: 'p-t0-1',
-                x: timeToX(-14),
+                id: 'pt-0',
+                x: xT0,
                 y: edssToY(0.5),
                 score: 0.5,
-                label: 'Avant poussée 1',
-                sublabel: 'EDSS 0,5 (J-14)',
+                badgeLabel: '0,5',
                 phase: 't0_before',
-                color: '#3b82f6',
-                dateFormatted: 'J -14 (Référence)',
+                color: '#2563eb',
+                dateFormatted: 'J -14',
+                showLabel: true,
             },
             {
-                id: 'p-t1-1',
-                x: timeToX(0),
+                id: 'pt-1-peak',
+                x: xP1Start,
                 y: edssToY(2.0),
                 score: 2.0,
-                label: 'Début poussée 1',
-                sublabel: 'EDSS 2 (Acmé)',
+                badgeLabel: 'Acmé 2,0',
                 phase: 't1_start',
-                color: '#ef4444',
-                dateFormatted: 'J 0 (Début poussée)',
+                color: '#e11d48',
+                dateFormatted: 'J 0',
+                showLabel: true,
             },
             {
-                id: 'p-t2-1',
-                x: timeToX(14),
+                id: 'pt-1-end',
+                x: xP1End,
                 y: edssToY(1.0),
                 score: 1.0,
-                label: 'Fin poussée 1',
-                sublabel: 'EDSS 1 (J14)',
+                badgeLabel: '1,0',
                 phase: 't2_end',
-                color: '#10b981',
-                dateFormatted: 'J +14 (Fin 2 sem)',
+                color: '#059669',
+                dateFormatted: 'J 14',
+                showLabel: true,
             },
             {
-                id: 'p-t1-2',
-                x: timeToX(70),
+                id: 'pt-2-peak',
+                x: xP2Start,
                 y: edssToY(3.0),
                 score: 3.0,
-                label: 'Début poussée 2',
-                sublabel: 'EDSS 3 (Acmé)',
+                badgeLabel: 'Acmé 3,0',
                 phase: 't1_start',
-                color: '#ef4444',
-                dateFormatted: 'Semaine 10',
+                color: '#e11d48',
+                dateFormatted: 'J 70',
+                showLabel: true,
             },
             {
-                id: 'p-t2-2',
-                x: timeToX(91),
+                id: 'pt-2-end',
+                x: xP2End,
                 y: edssToY(2.0),
                 score: 2.0,
-                label: 'Fin poussée 2',
-                sublabel: 'EDSS 2 (J91)',
+                badgeLabel: '2,0',
                 phase: 't2_end',
-                color: '#10b981',
-                dateFormatted: 'Semaine 13',
+                color: '#059669',
+                dateFormatted: 'J 91',
+                showLabel: true,
             },
             {
-                id: 'p-t-followup',
-                x: timeToX(133),
+                id: 'pt-follow-end',
+                x: xFollowEnd,
                 y: edssToY(2.0),
                 score: 2.0,
-                label: 'Dernier suivi',
-                sublabel: 'EDSS 2 (Stabilisé)',
+                badgeLabel: '2,0',
                 phase: 'plateau',
-                color: '#6366f1',
-                dateFormatted: 'Semaine 19',
+                color: '#4f46e5',
+                dateFormatted: 'J 133',
+                showLabel: false,
             },
         ];
 
-        // Piecewise line path:
-        // M (-14, 0.5) -> L (0, 0.5) -> L (0, 2.0) -> L (14, 1.0) -> L (70, 1.0) -> L (70, 3.0) -> L (91, 2.0) -> L (133, 2.0)
-        const linePath = `M ${timeToX(-14)} ${edssToY(0.5)} ` +
-            `L ${timeToX(0)} ${edssToY(0.5)} ` +
-            `L ${timeToX(0)} ${edssToY(2.0)} ` +
-            `L ${timeToX(14)} ${edssToY(1.0)} ` +
-            `L ${timeToX(70)} ${edssToY(1.0)} ` +
-            `L ${timeToX(70)} ${edssToY(3.0)} ` +
-            `L ${timeToX(91)} ${edssToY(2.0)} ` +
-            `L ${timeToX(133)} ${edssToY(2.0)}`;
+        const linePath = `M ${xT0} ${edssToY(0.5)} ` +
+            `L ${xP1Start} ${edssToY(0.5)} ` +
+            `L ${xP1Start} ${edssToY(2.0)} ` +
+            `L ${xP1End} ${edssToY(1.0)} ` +
+            `L ${xP2Start} ${edssToY(1.0)} ` +
+            `L ${xP2Start} ${edssToY(3.0)} ` +
+            `L ${xP2End} ${edssToY(2.0)} ` +
+            `L ${xFollowEnd} ${edssToY(2.0)}`;
 
-        const areaPath = `${linePath} L ${timeToX(133)} ${plotBottom} L ${timeToX(-14)} ${plotBottom} Z`;
+        const areaPath = `${linePath} L ${xFollowEnd} ${plotBottom} L ${xT0} ${plotBottom} Z`;
 
-        // Y-axis grid lines every 0.5 EDSS
         const yTicks: { score: number; y: number; isMajor: boolean }[] = [];
         for (let s = 0; s <= maxScore; s += 0.5) {
             yTicks.push({
@@ -437,23 +410,20 @@ const piecewiseModelData = computed(() => {
             });
         }
 
-        // X-axis timeline ticks
         const xTicks = [
-            { x: timeToX(-14), label: 'J -14', sublabel: 'Référence' },
-            { x: timeToX(0), label: 'J 0', sublabel: 'Début P1' },
-            { x: timeToX(7), label: 'J 7', sublabel: '1 sem' },
-            { x: timeToX(14), label: 'J 14', sublabel: 'Fin P1' },
-            { x: timeToX(42), label: 'Sem 6', sublabel: 'Rémission' },
-            { x: timeToX(70), label: 'Sem 10', sublabel: 'Début P2' },
-            { x: timeToX(91), label: 'Sem 13', sublabel: 'Fin P2' },
-            { x: timeToX(112), label: 'Sem 16', sublabel: 'Suivi' },
-            { x: timeToX(133), label: 'Sem 19', sublabel: 'Bilan' },
+            { x: xT0, label: 'J -14', sublabel: 'Référence' },
+            { x: xP1Start, label: 'J 0', sublabel: 'Début P1' },
+            { x: xP1End, label: 'J 14', sublabel: 'Fin P1 (2 sem)' },
+            { x: (xP1End + xP2Start) / 2, label: 'Sem 6', sublabel: 'Rémission' },
+            { x: xP2Start, label: 'J 70', sublabel: 'Début P2' },
+            { x: xP2End, label: 'J 91', sublabel: 'Fin P2 (3 sem)' },
+            { x: xFollowEnd, label: 'J 133', sublabel: 'Suivi' },
         ];
 
         return {
             isBenchmark: true,
-            title: "Évolution de l'EDSS au cours d'une poussée de 2 semaines",
-            subtitle: "Schéma illustratif selon cahier des charges : EDSS référence = 0,5 ; acmé début = 2,0 ; EDSS à 2 semaines = 1,0",
+            title: "Modèle de référence du protocole (2 semaines)",
+            subtitle: "Illustration théorique : EDSS référence = 0,5 ; acmé début = 2,0 ; EDSS final à 2 semaines = 1,0",
             svgWidth,
             svgHeight,
             plotTop,
@@ -489,7 +459,7 @@ const piecewiseModelData = computed(() => {
                     delta: '0,0',
                     deltaClass: 'text-emerald-600 font-medium',
                     status: 'Rémission clinique',
-                    treatment: 'Traitement de fond (Avonex)',
+                    treatment: 'Interféron bêta-1a',
                 },
                 {
                     phase: '2ème poussée',
@@ -510,8 +480,8 @@ const piecewiseModelData = computed(() => {
                     edssAfter: '2,0',
                     delta: '0,0',
                     deltaClass: 'text-muted-foreground font-medium',
-                    status: 'Plateau stabilisé',
-                    treatment: 'Suivi semestriel',
+                    status: 'Handicap stabilisé',
+                    treatment: 'Contrôle périodique',
                 },
             ],
             formulaData: {
@@ -523,44 +493,42 @@ const piecewiseModelData = computed(() => {
         };
     }
 
-    // ---------------------------------------------------------
-    // REAL PATIENT DATA CHRONOLOGICAL MAPPING
-    // ---------------------------------------------------------
+    // -------------------------------------------------------------
+    // REAL PATIENT DATA WITH SMART HYBRID CLINICAL SPACING
+    // -------------------------------------------------------------
     const relapses = sortedRelapses.value;
     const initialEdss = props.diseaseProfile?.initial_edss !== null && props.diseaseProfile?.initial_edss !== undefined
         ? Number(props.diseaseProfile.initial_edss)
         : null;
 
-    // Build timeline events
-    type BuiltRelapsePhase = {
+    type BuiltRelapse = {
         relapse: Relapse;
         index: number;
-        t0: number; // before evaluation timestamp
-        t1: number; // start date timestamp
-        t2: number; // end/recovery timestamp
+        startDateStr: string;
+        endDateStr: string;
         durationDays: number;
+        gapBeforeDays: number;
         edssBefore: number;
         edssPeak: number;
         edssAfter: number;
     };
 
-    const builtRelapses: BuiltRelapsePhase[] = [];
     let runningBaseline = initialEdss ?? 0.0;
+    const builtRelapses: BuiltRelapse[] = [];
 
     relapses.forEach((r, idx) => {
         const t1 = parseAnyDate(r.start_date_raw || r.start_date);
         let t2 = parseAnyDate(r.edss_evaluation_date_raw || r.edss_evaluation_date || r.end_date_raw || r.end_date);
         if (t2 <= t1) {
-            t2 = t1 + 14 * 86400000; // default 14 days if unrecorded
+            t2 = t1 + (r.duration_days ? r.duration_days * 86400000 : 14 * 86400000);
         }
         const durationDays = Math.max(1, Math.round((t2 - t1) / 86400000));
 
-        let t0 = parseAnyDate(r.edss_before_date_raw || r.edss_before_date);
-        if (t0 <= 0 || t0 >= t1) {
-            if (idx === 0) {
-                t0 = t1 - 14 * 86400000;
-            } else {
-                t0 = builtRelapses[idx - 1].t2;
+        let gapBeforeDays = 30;
+        if (idx > 0) {
+            const prevT2 = parseAnyDate(relapses[idx - 1].end_date_raw || relapses[idx - 1].end_date);
+            if (prevT2 > 0 && t1 > prevT2) {
+                gapBeforeDays = Math.max(15, Math.round((t1 - prevT2) / 86400000));
             }
         }
 
@@ -581,65 +549,85 @@ const piecewiseModelData = computed(() => {
         builtRelapses.push({
             relapse: r,
             index: idx + 1,
-            t0,
-            t1,
-            t2,
+            startDateStr: r.start_date || formatFrenchDate(t1),
+            endDateStr: r.end_date || formatFrenchDate(t2),
             durationDays,
+            gapBeforeDays,
             edssBefore,
             edssPeak,
             edssAfter,
         });
     });
 
-    const minTimestamp = builtRelapses[0].t0;
-    const lastRelapse = builtRelapses[builtRelapses.length - 1];
-    // Add 30 days of follow-up after the last relapse
-    const maxTimestamp = Math.max(Date.now(), lastRelapse.t2 + 30 * 86400000);
-    const totalTimeSpan = Math.max(86400000 * 30, maxTimestamp - minTimestamp);
+    // Smart clinical spacing: Give every acute relapse a minimum width of 110px
+    // and every remission gap a minimum width of 115px to ensure ZERO label collision!
+    const relapseVisualWidth = 115;
+    const gapVisualWidth = 120;
+    const followVisualWidth = 110;
 
-    const timeToX = (t: number) => paddingLeft + ((t - minTimestamp) / totalTimeSpan) * plotWidth;
+    const totalCalculatedWidth = paddingLeft + 25 + (builtRelapses.length * relapseVisualWidth) + ((builtRelapses.length - 1) * gapVisualWidth) + followVisualWidth + paddingRight;
+    const svgWidth = Math.max(900, totalCalculatedWidth);
+    const svgHeight = 310;
+    const plotWidth = svgWidth - paddingLeft - paddingRight;
 
-    // Find highest EDSS score among all relapses
+    // Y scale
     const allScores = builtRelapses.flatMap((b) => [b.edssBefore, b.edssPeak, b.edssAfter]);
     const maxObservedScore = Math.max(3.5, ...allScores);
-    const maxScore = Math.min(10, Math.ceil((maxObservedScore + 0.5) * 2) / 2); // rounded up to next 0.5
-
+    const maxScore = Math.min(10, Math.ceil((maxObservedScore + 0.5) * 2) / 2);
     const edssToY = (score: number) => plotBottom - (Math.max(0, Math.min(maxScore, score)) / maxScore) * plotHeight;
 
     const bands: PhaseBand[] = [];
     const points: CurvePoint[] = [];
-    let pathSegments = '';
+    const xTicks: { x: number; label: string; sublabel: string }[] = [];
     const summaryRows: any[] = [];
+
+    let currentX = paddingLeft + 20;
+    let linePath = `M ${currentX} ${edssToY(builtRelapses[0].edssBefore)} `;
+
+    // Baseline start point
+    points.push({
+        id: 'real-pt-t0',
+        x: currentX,
+        y: edssToY(builtRelapses[0].edssBefore),
+        score: builtRelapses[0].edssBefore,
+        badgeLabel: builtRelapses[0].edssBefore.toFixed(1),
+        phase: 't0_before',
+        color: '#2563eb',
+        dateFormatted: 'Référence',
+        showLabel: true,
+    });
+    xTicks.push({
+        x: currentX,
+        label: 'Base',
+        sublabel: builtRelapses[0].edssBefore.toFixed(1),
+    });
 
     builtRelapses.forEach((b, idx) => {
         const style = getRecoveryStyle(b.relapse.clinical_recovery, !!b.relapse.sequelae);
-        const startX = timeToX(b.t1);
-        const endX = timeToX(b.t2);
-        const width = Math.max(16, endX - startX);
+        const startX = currentX + 30; // slight baseline plateau before peak
+        const endX = startX + relapseVisualWidth;
 
-        // Relapse band
+        // Band for acute relapse
         bands.push({
-            id: `band-relapse-${b.relapse.id}`,
+            id: `real-band-${b.relapse.id}`,
             type: 'relapse',
             title: `Poussée #${b.index}`,
-            subtitle: `${b.durationDays} jours`,
+            shortTitle: `P#${b.index} (${b.durationDays}j)`,
             durationLabel: `${b.durationDays} jours`,
             colorBg: style.bandBg,
             colorBorder: style.bandBorder,
             startX,
             endX,
-            width,
+            width: endX - startX,
+            rawDate: `${b.startDateStr} → ${b.endDateStr}`,
             edssBefore: b.edssBefore,
             edssPeak: b.edssPeak,
             edssAfter: b.edssAfter,
             delta: Number((b.edssAfter - b.edssBefore).toFixed(1)),
-            recoveryLabel: b.relapse.clinical_recovery || 'Évolution documentée',
-            treatmentLabel: b.relapse.treatment_administered || 'Traitement corticoïde',
-            relapseId: b.relapse.id,
-            index: b.index,
+            recoveryLabel: b.relapse.clinical_recovery || 'Documentée',
+            treatmentLabel: b.relapse.treatment_administered || 'Solumédrol',
         });
 
-        // Summary row
         summaryRows.push({
             phase: `Poussée #${b.index}`,
             duration: `${b.durationDays} jours`,
@@ -652,129 +640,120 @@ const piecewiseModelData = computed(() => {
             treatment: b.relapse.treatment_administered || 'Néant',
         });
 
-        // Points
-        points.push({
-            id: `pt-t0-${b.relapse.id}`,
-            x: timeToX(b.t0),
-            y: edssToY(b.edssBefore),
-            score: b.edssBefore,
-            label: `Avant P#${b.index}`,
-            sublabel: `EDSS ${b.edssBefore.toFixed(1)}`,
-            phase: 't0_before',
-            color: '#3b82f6',
-            dateFormatted: formatFrenchDate(b.t0),
-        });
+        // Path logic:
+        // Flat to startX, rise to peak, descent to endX
+        linePath += `L ${startX} ${edssToY(b.edssBefore)} `;
+        linePath += `L ${startX} ${edssToY(b.edssPeak)} `;
+        linePath += `L ${endX} ${edssToY(b.edssAfter)} `;
 
+        // Acute Peak Point
         points.push({
-            id: `pt-t1-${b.relapse.id}`,
+            id: `real-pt-peak-${b.relapse.id}`,
             x: startX,
             y: edssToY(b.edssPeak),
             score: b.edssPeak,
-            label: `Début P#${b.index} (Acmé)`,
-            sublabel: `EDSS ${b.edssPeak.toFixed(1)}`,
+            badgeLabel: `Pic ${b.edssPeak.toFixed(1)}`,
             phase: 't1_start',
-            color: '#ef4444',
-            dateFormatted: formatFrenchDate(b.t1),
+            color: '#e11d48',
+            dateFormatted: b.startDateStr,
+            showLabel: true,
         });
 
+        // Recovery End Point
         points.push({
-            id: `pt-t2-${b.relapse.id}`,
+            id: `real-pt-end-${b.relapse.id}`,
             x: endX,
             y: edssToY(b.edssAfter),
             score: b.edssAfter,
-            label: `Fin P#${b.index}`,
-            sublabel: `EDSS ${b.edssAfter.toFixed(1)}`,
+            badgeLabel: b.edssAfter.toFixed(1),
             phase: 't2_end',
-            color: '#10b981',
-            dateFormatted: formatFrenchDate(b.t2),
+            color: '#059669',
+            dateFormatted: b.endDateStr,
+            showLabel: true,
         });
 
-        // Inter-relapse remission band if there is a next relapse
-        if (idx < builtRelapses.length - 1) {
-            const next = builtRelapses[idx + 1];
-            const interStartX = endX;
-            const interEndX = timeToX(next.t1);
-            const interDays = Math.round((next.t1 - b.t2) / 86400000);
-
-            if (interEndX > interStartX) {
-                bands.push({
-                    id: `band-inter-${b.relapse.id}`,
-                    type: 'inter_relapse',
-                    title: 'Période entre poussées',
-                    subtitle: `${interDays} jours de rémission`,
-                    durationLabel: `${interDays} jours`,
-                    colorBg: 'rgba(224, 242, 254, 0.65)',
-                    colorBorder: 'rgba(56, 189, 248, 0.4)',
-                    startX: interStartX,
-                    endX: interEndX,
-                    width: interEndX - interStartX,
-                    edssBefore: b.edssAfter,
-                    edssAfter: b.edssAfter,
-                    delta: 0.0,
-                    recoveryLabel: 'Phase de rémission',
-                    treatmentLabel: 'Traitement de fond de suivi',
-                });
-
-                summaryRows.push({
-                    phase: `Intervalle P#${b.index} → P#${next.index}`,
-                    duration: `${interDays} jours`,
-                    edssBefore: b.edssAfter.toFixed(1),
-                    edssPeak: '—',
-                    edssAfter: b.edssAfter.toFixed(1),
-                    delta: '0,0',
-                    deltaClass: 'text-muted-foreground font-medium',
-                    status: 'Rémission intercritique',
-                    treatment: 'Traitement de fond',
-                });
-            }
-        }
-    });
-
-    // Follow-up band after the last relapse
-    const followStartX = timeToX(lastRelapse.t2);
-    const followEndX = timeToX(maxTimestamp);
-    if (followEndX > followStartX) {
-        const followDays = Math.round((maxTimestamp - lastRelapse.t2) / 86400000);
-        bands.push({
-            id: 'band-followup',
-            type: 'followup',
-            title: 'Période de suivi actuel',
-            subtitle: `${followDays} jours`,
-            durationLabel: `${followDays} jours`,
-            colorBg: 'rgba(224, 242, 254, 0.65)',
-            colorBorder: 'rgba(56, 189, 248, 0.4)',
-            startX: followStartX,
-            endX: followEndX,
-            width: followEndX - followStartX,
-            edssBefore: lastRelapse.edssAfter,
-            edssAfter: lastRelapse.edssAfter,
-            delta: 0.0,
-            recoveryLabel: 'Suivi clinique en cours',
-            treatmentLabel: 'Contrôle périodique',
+        // X-Ticks
+        xTicks.push({
+            x: startX,
+            label: b.startDateStr,
+            sublabel: `Début P#${b.index}`,
         });
-    }
+        xTicks.push({
+            x: endX,
+            label: b.endDateStr,
+            sublabel: `Fin P#${b.index}`,
+        });
 
-    // Build the piecewise SVG path
-    let linePath = `M ${timeToX(builtRelapses[0].t0)} ${edssToY(builtRelapses[0].edssBefore)} `;
-    builtRelapses.forEach((b, idx) => {
-        // Line from t0 to onset t1 at baseline
-        linePath += `L ${timeToX(b.t1)} ${edssToY(b.edssBefore)} `;
-        // Rise to acute peak
-        linePath += `L ${timeToX(b.t1)} ${edssToY(b.edssPeak)} `;
-        // Descent to recovery at t2
-        linePath += `L ${timeToX(b.t2)} ${edssToY(b.edssAfter)} `;
-        // Plateau to next relapse onset or end of plot
+        // Inter-relapse gap if there is a next relapse
         if (idx < builtRelapses.length - 1) {
+            const gapStartX = endX;
+            const gapEndX = gapStartX + gapVisualWidth;
             const next = builtRelapses[idx + 1];
-            linePath += `L ${timeToX(next.t1)} ${edssToY(b.edssAfter)} `;
+
+            bands.push({
+                id: `real-inter-${b.relapse.id}`,
+                type: 'inter_relapse',
+                title: 'Période de rémission',
+                shortTitle: `Rémission (${next.gapBeforeDays}j)`,
+                durationLabel: `${next.gapBeforeDays} jours`,
+                colorBg: 'rgba(224, 242, 254, 0.65)',
+                colorBorder: 'rgba(56, 189, 248, 0.4)',
+                startX: gapStartX,
+                endX: gapEndX,
+                width: gapEndX - gapStartX,
+                rawDate: `${b.endDateStr} → ${next.startDateStr}`,
+                edssBefore: b.edssAfter,
+                edssAfter: b.edssAfter,
+                delta: 0.0,
+                recoveryLabel: 'Phase de rémission intercritique',
+                treatmentLabel: 'Traitement de fond',
+            });
+
+            summaryRows.push({
+                phase: `Intervalle P#${b.index} → P#${next.index}`,
+                duration: `${next.gapBeforeDays} jours`,
+                edssBefore: b.edssAfter.toFixed(1),
+                edssPeak: '—',
+                edssAfter: b.edssAfter.toFixed(1),
+                delta: '0,0',
+                deltaClass: 'text-muted-foreground font-medium',
+                status: 'Rémission intercritique',
+                treatment: 'Traitement de fond',
+            });
+
+            // Flat line through remission
+            linePath += `L ${gapEndX} ${edssToY(b.edssAfter)} `;
+            currentX = gapEndX;
         } else {
-            linePath += `L ${timeToX(maxTimestamp)} ${edssToY(b.edssAfter)} `;
+            // Follow-up period after last relapse
+            const followStartX = endX;
+            const followEndX = followStartX + followVisualWidth;
+
+            bands.push({
+                id: 'real-followup',
+                type: 'followup',
+                title: 'Période de suivi',
+                shortTitle: 'Suivi actuel',
+                durationLabel: 'En cours',
+                colorBg: 'rgba(224, 242, 254, 0.65)',
+                colorBorder: 'rgba(56, 189, 248, 0.4)',
+                startX: followStartX,
+                endX: followEndX,
+                width: followEndX - followStartX,
+                edssBefore: b.edssAfter,
+                edssAfter: b.edssAfter,
+                delta: 0.0,
+                recoveryLabel: 'Suivi clinique actuel',
+                treatmentLabel: 'Suivi neurologique',
+            });
+
+            linePath += `L ${followEndX} ${edssToY(b.edssAfter)} `;
+            currentX = followEndX;
         }
     });
 
-    const areaPath = `${linePath} L ${timeToX(maxTimestamp)} ${plotBottom} L ${timeToX(builtRelapses[0].t0)} ${plotBottom} Z`;
+    const areaPath = `${linePath} L ${currentX} ${plotBottom} L ${paddingLeft + 20} ${plotBottom} Z`;
 
-    // Y-ticks
     const yTicks: { score: number; y: number; isMajor: boolean }[] = [];
     for (let s = 0; s <= maxScore; s += 0.5) {
         yTicks.push({
@@ -784,25 +763,10 @@ const piecewiseModelData = computed(() => {
         });
     }
 
-    // X-ticks based on actual relapse dates
-    const xTicks: { x: number; label: string; sublabel: string }[] = [];
-    builtRelapses.forEach((b) => {
-        xTicks.push({
-            x: timeToX(b.t1),
-            label: formatFrenchDate(b.t1),
-            sublabel: `Début P#${b.index}`,
-        });
-        xTicks.push({
-            x: timeToX(b.t2),
-            label: formatFrenchDate(b.t2),
-            sublabel: `Fin P#${b.index}`,
-        });
-    });
-
     return {
         isBenchmark: false,
-        title: "Évolution de l'EDSS au cours des poussées de sclérose en plaques",
-        subtitle: `Données réelles du patient : ${relapses.length} poussée(s) documentée(s) avec évaluation du handicap résiduel`,
+        title: "Évolution de l'EDSS au cours des poussées",
+        subtitle: `Patient : ${relapses.length} poussée(s) répertoriée(s) — cinétique du handicap aigu et résiduel`,
         svgWidth,
         svgHeight,
         plotTop,
@@ -827,34 +791,18 @@ const piecewiseModelData = computed(() => {
     };
 });
 
-// Annual Relapse Rate (ARR) Histogram view
-type YearBin = {
-    year: number;
-    count: number;
-    completeCount: number;
-    incompleteCount: number;
-};
-
+// Annual Relapse Rate (ARR)
 const annualDistributionData = computed(() => {
     const list = sortedRelapses.value;
     if (list.length === 0) {
         return { items: [], maxCount: 1, arr: '0.0', spanYears: 1 };
     }
 
-    const yearCounts = new Map<number, YearBin>();
+    const yearCounts = new Map<number, number>();
     list.forEach((r) => {
         const time = parseAnyDate(r.start_date_raw || r.start_date);
         const yr = time > 0 ? new Date(time).getFullYear() : new Date().getFullYear();
-        if (!yearCounts.has(yr)) {
-            yearCounts.set(yr, { year: yr, count: 0, completeCount: 0, incompleteCount: 0 });
-        }
-        const b = yearCounts.get(yr)!;
-        b.count++;
-        if (r.clinical_recovery === 'Complète' && !r.sequelae) {
-            b.completeCount++;
-        } else {
-            b.incompleteCount++;
-        }
+        yearCounts.set(yr, (yearCounts.get(yr) || 0) + 1);
     });
 
     const years = Array.from(yearCounts.keys()).sort((a, b) => a - b);
@@ -866,36 +814,13 @@ const annualDistributionData = computed(() => {
     const items: { year: number; count: number; x: number }[] = [];
     let maxCount = 1;
     years.forEach((yr, idx) => {
-        const bin = yearCounts.get(yr)!;
-        if (bin.count > maxCount) maxCount = bin.count;
-        const x = 80 + idx * 90;
-        items.push({ year: yr, count: bin.count, x });
+        const count = yearCounts.get(yr) || 0;
+        if (count > maxCount) maxCount = count;
+        const x = 70 + idx * 85;
+        items.push({ year: yr, count, x });
     });
 
     return { items, maxCount, arr, spanYears };
-});
-
-// Healthcare summary indicators
-const clinicalMetrics = computed(() => {
-    const list = sortedRelapses.value;
-    const completeCount = list.filter((r) => r.clinical_recovery === 'Complète' && !r.sequelae).length;
-    const completeRate = list.length > 0 ? Math.round((completeCount / list.length) * 100) : 0;
-
-    let remissionMonths: number | null = null;
-    if (list.length > 0) {
-        const latest = list[list.length - 1];
-        const latestTime = parseAnyDate(latest.start_date_raw || latest.start_date);
-        if (latestTime > 0) {
-            remissionMonths = Math.round((Date.now() - latestTime) / (1000 * 60 * 60 * 24 * 30.4375));
-        }
-    }
-
-    return {
-        total: list.length,
-        arr: annualDistributionData.value.arr,
-        completeRecoveryRate: completeRate,
-        remissionMonths,
-    };
 });
 
 // Export chart as PNG
@@ -910,7 +835,7 @@ const exportAsPng = () => {
         const url = URL.createObjectURL(svgBlob);
 
         const canvas = document.createElement('canvas');
-        const scale = 2; // Retina export quality
+        const scale = 2;
         canvas.width = piecewiseModelData.value.svgWidth * scale;
         canvas.height = piecewiseModelData.value.svgHeight * scale;
 
@@ -925,7 +850,7 @@ const exportAsPng = () => {
             URL.revokeObjectURL(url);
 
             const link = document.createElement('a');
-            link.download = `evolution_edss_poussees_${new Date().toISOString().slice(0, 10)}.png`;
+            link.download = `evolution_edss_${new Date().toISOString().slice(0, 10)}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         };
@@ -935,41 +860,40 @@ const exportAsPng = () => {
     }
 };
 
-// Print / PDF trigger
 const printChart = () => {
     window.print();
 };
 </script>
 
 <template>
-    <Card class="border border-border/80 bg-gradient-to-b from-card via-card to-muted/20 shadow-xs overflow-hidden print:border-none print:shadow-none">
-        <!-- Header with Medical Icon & Healthcare Title -->
+    <Card class="border border-border/80 bg-card shadow-xs overflow-hidden print:border-none print:shadow-none">
+        <!-- Clean, Compact Header with Action Buttons -->
         <CardHeader class="pb-3 border-b border-border/60">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-                <div class="space-y-1">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="space-y-0.5">
                     <div class="flex items-center gap-2">
-                        <div class="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                        <div class="p-1.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                             <Activity class="size-4" />
                         </div>
-                        <CardTitle class="text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
+                        <CardTitle class="text-sm sm:text-base font-semibold tracking-tight text-foreground flex items-center gap-2">
                             <span>Illustration Chronologique des Poussées & Évolution EDSS</span>
-                            <Badge variant="outline" class="text-xs font-mono font-normal bg-background">
+                            <Badge variant="outline" class="text-[11px] font-mono font-normal">
                                 {{ relapses.length }} {{ relapses.length > 1 ? 'poussées' : 'poussée' }}
                             </Badge>
                         </CardTitle>
                     </div>
                     <CardDescription class="text-xs text-muted-foreground">
-                        Représentation graphique de l'évolution du handicap (EDSS 0 à 10) avant, pendant l'acmé aiguë et après récupération des poussées.
+                        Cinétique du handicap EDSS (0 à 10) : état basal, acmé aiguë et niveau de récupération.
                     </CardDescription>
                 </div>
 
-                <!-- Action Controls: Source Toggle, Views, Export -->
+                <!-- Action Controls Bar -->
                 <div class="flex flex-wrap items-center gap-2">
-                    <!-- Benchmark / Real Switcher -->
-                    <div class="flex items-center bg-muted/70 p-0.5 rounded-lg border border-border/60 text-xs">
+                    <!-- Source Mode: Real vs Protocol Benchmark -->
+                    <div class="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/60 text-xs">
                         <button
                             type="button"
-                            class="px-2.5 py-1 rounded-md transition-all font-medium whitespace-nowrap"
+                            class="px-2.5 py-1 rounded-md transition-all whitespace-nowrap"
                             :class="dataSourceMode === 'real'
                                 ? 'bg-background text-foreground shadow-2xs font-semibold'
                                 : 'text-muted-foreground hover:text-foreground'"
@@ -979,32 +903,32 @@ const printChart = () => {
                         </button>
                         <button
                             type="button"
-                            class="px-2.5 py-1 rounded-md transition-all font-medium whitespace-nowrap flex items-center gap-1"
+                            class="px-2.5 py-1 rounded-md transition-all whitespace-nowrap"
                             :class="dataSourceMode === 'benchmark'
                                 ? 'bg-background text-foreground shadow-2xs font-semibold'
                                 : 'text-muted-foreground hover:text-foreground'"
                             @click="dataSourceMode = 'benchmark'"
                         >
-                            <span>Exemple protocole (2 sem)</span>
+                            Exemple protocole (2 sem)
                         </button>
                     </div>
 
-                    <!-- View Switcher (Courbe EDSS vs ARR) -->
-                    <div class="flex items-center bg-muted/70 p-0.5 rounded-lg border border-border/60 text-xs">
+                    <!-- View Switcher Tabs -->
+                    <div class="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border/60 text-xs">
                         <button
                             type="button"
-                            class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1.5 whitespace-nowrap"
+                            class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 whitespace-nowrap"
                             :class="activeView === 'edss_timeline'
                                 ? 'bg-background text-foreground shadow-2xs font-semibold'
                                 : 'text-muted-foreground hover:text-foreground'"
                             @click="activeView = 'edss_timeline'"
                         >
                             <TrendingUp class="size-3.5 text-indigo-600 dark:text-indigo-400" />
-                            <span>Courbe EDSS & Poussées</span>
+                            <span>Courbe EDSS</span>
                         </button>
                         <button
                             type="button"
-                            class="px-2.5 py-1 rounded-md font-medium transition-all flex items-center gap-1.5 whitespace-nowrap"
+                            class="px-2.5 py-1 rounded-md transition-all flex items-center gap-1.5 whitespace-nowrap"
                             :class="activeView === 'bars'
                                 ? 'bg-background text-foreground shadow-2xs font-semibold'
                                 : 'text-muted-foreground hover:text-foreground'"
@@ -1015,14 +939,14 @@ const printChart = () => {
                         </button>
                     </div>
 
-                    <!-- Export Actions -->
+                    <!-- Export Buttons -->
                     <div class="flex items-center gap-1">
                         <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             class="h-7 text-xs px-2 gap-1"
-                            title="Télécharger l'image PNG haute résolution"
+                            title="Exporter en image PNG"
                             @click="exportAsPng"
                         >
                             <Download class="size-3" />
@@ -1033,7 +957,7 @@ const printChart = () => {
                             variant="outline"
                             size="sm"
                             class="h-7 text-xs px-2 gap-1"
-                            title="Imprimer ou enregistrer en PDF"
+                            title="Imprimer"
                             @click="printChart"
                         >
                             <Printer class="size-3" />
@@ -1042,88 +966,54 @@ const printChart = () => {
                     </div>
                 </div>
             </div>
-
-            <!-- Healthcare Clinical Strip -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 mt-1 border-t border-dashed border-border/50 text-xs">
-                <!-- Taux Annualisé (ARR) -->
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-indigo-500/5 border border-indigo-500/15">
-                    <Activity class="size-3.5 text-indigo-600 shrink-0" />
-                    <div>
-                        <span class="text-[10px] text-muted-foreground block leading-tight">Taux Annualisé (ARR)</span>
-                        <span class="font-mono font-bold text-indigo-700 dark:text-indigo-300 text-xs">
-                            {{ clinicalMetrics.arr }} <span class="text-[10px] font-normal text-muted-foreground">/an</span>
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Taux Récupération Complète -->
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-emerald-500/5 border border-emerald-500/15">
-                    <ShieldCheck class="size-3.5 text-emerald-600 shrink-0" />
-                    <div>
-                        <span class="text-[10px] text-muted-foreground block leading-tight">Récupération Complète</span>
-                        <span class="font-mono font-bold text-emerald-700 dark:text-emerald-300 text-xs">
-                            {{ clinicalMetrics.completeRecoveryRate }}%
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Rémission Actuelle -->
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-sky-500/5 border border-sky-500/15">
-                    <Sparkles class="size-3.5 text-sky-600 shrink-0" />
-                    <div>
-                        <span class="text-[10px] text-muted-foreground block leading-tight">Dernière Poussée</span>
-                        <span class="font-mono font-bold text-sky-700 dark:text-sky-300 text-xs">
-                            {{ clinicalMetrics.remissionMonths !== null ? `Il y a ${clinicalMetrics.remissionMonths} mois` : 'Non renseignée' }}
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Échelle de Référence -->
-                <div class="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-amber-500/5 border border-amber-500/15">
-                    <Stethoscope class="size-3.5 text-amber-600 shrink-0" />
-                    <div>
-                        <span class="text-[10px] text-muted-foreground block leading-tight">Échelle Handicap</span>
-                        <span class="font-mono font-bold text-amber-700 dark:text-amber-300 text-xs">
-                            EDSS 0 à 10 <span class="text-[10px] font-normal text-muted-foreground">(Kurtzke)</span>
-                        </span>
-                    </div>
-                </div>
-            </div>
         </CardHeader>
 
-        <CardContent class="pt-4 pb-4 space-y-5">
+        <CardContent class="pt-4 pb-4 space-y-4">
             <!-- ============================================================== -->
             <!-- VIEW 1: THREE-PHASE PIECEWISE CURVE & SHADED BANDS             -->
             <!-- ============================================================== -->
-            <div v-if="activeView === 'edss_timeline'" class="space-y-4">
-                <!-- Subtitle info banner -->
-                <div class="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/40 border border-border/60">
+            <div v-if="activeView === 'edss_timeline'" class="space-y-3">
+                <!-- Interactive Hovered Phase Badge (Clean, zero clutter) -->
+                <div
+                    v-if="hoveredInfo"
+                    class="px-3 py-1.5 rounded-lg bg-muted/60 border border-border/70 text-xs flex flex-wrap items-center justify-between gap-2 transition-all animate-in fade-in"
+                >
                     <div class="flex items-center gap-2">
-                        <span class="font-semibold text-foreground">{{ piecewiseModelData.title }}</span>
-                        <span class="text-muted-foreground hidden sm:inline">— {{ piecewiseModelData.subtitle }}</span>
+                        <span class="font-bold text-foreground">{{ hoveredInfo.title }}</span>
+                        <span class="text-muted-foreground">({{ hoveredInfo.duration }})</span>
+                        <span class="text-muted-foreground font-mono text-[11px]">{{ hoveredInfo.date }}</span>
                     </div>
-                    <Badge v-if="piecewiseModelData.isBenchmark" variant="outline" class="text-[10px] bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30">
-                        Modèle de référence
-                    </Badge>
+                    <div class="flex items-center gap-2 font-mono text-xs">
+                        <span class="text-muted-foreground">EDSS :</span>
+                        <span class="text-blue-600 dark:text-blue-400 font-bold">{{ hoveredInfo.edssBefore }}</span>
+                        <template v-if="hoveredInfo.edssPeak !== undefined">
+                            <span class="text-muted-foreground">→</span>
+                            <span class="text-rose-600 dark:text-rose-400 font-bold">{{ hoveredInfo.edssPeak }} (acmé)</span>
+                        </template>
+                        <span class="text-muted-foreground">→</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ hoveredInfo.edssAfter }} (post)</span>
+                        <span v-if="hoveredInfo.treatment" class="text-muted-foreground font-sans text-[11px] ml-1">
+                            • {{ hoveredInfo.treatment }}
+                        </span>
+                    </div>
                 </div>
 
-                <!-- Main SVG Plot Canvas -->
-                <div class="w-full overflow-x-auto rounded-xl bg-card border border-border/70 p-3 shadow-xs">
+                <!-- Main SVG Plot Canvas with Horizontal Scroll on Mobile -->
+                <div class="w-full overflow-x-auto rounded-xl bg-card/50 border border-border/70 p-2 sm:p-3 shadow-xs">
                     <svg
                         ref="chartSvgRef"
                         :viewBox="`0 0 ${piecewiseModelData.svgWidth} ${piecewiseModelData.svgHeight}`"
-                        class="w-full min-w-[800px] h-84 select-none overflow-visible font-sans"
+                        class="w-full min-w-[780px] h-72 select-none overflow-visible font-sans"
                     >
                         <defs>
                             <!-- Shaded Area Gradient under the EDSS curve -->
-                            <linearGradient id="piecewiseAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stop-color="#2563eb" stop-opacity="0.22" />
-                                <stop offset="100%" stop-color="#2563eb" stop-opacity="0.02" />
+                            <linearGradient id="cleanAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#2563eb" stop-opacity="0.20" />
+                                <stop offset="100%" stop-color="#2563eb" stop-opacity="0.01" />
                             </linearGradient>
 
-                            <!-- Subtle horizontal grid pattern -->
-                            <pattern id="edssSubtleGrid" width="40" height="20" patternUnits="userSpaceOnUse">
-                                <line x1="0" y1="20" x2="40" y2="20" stroke="currentColor" stroke-width="0.6" class="text-border/20" />
+                            <pattern id="cleanGrid" width="30" height="20" patternUnits="userSpaceOnUse">
+                                <line x1="0" y1="20" x2="30" y2="20" stroke="currentColor" stroke-width="0.5" class="text-border/20" />
                             </pattern>
                         </defs>
 
@@ -1133,8 +1023,8 @@ const printChart = () => {
                             :y="piecewiseModelData.plotTop"
                             :width="piecewiseModelData.plotWidth"
                             :height="piecewiseModelData.plotHeight"
-                            fill="url(#edssSubtleGrid)"
-                            class="rx-md"
+                            fill="url(#cleanGrid)"
+                            rx="4"
                         />
 
                         <!-- -------------------------------------------------- -->
@@ -1150,29 +1040,41 @@ const printChart = () => {
                                 :fill="band.colorBg"
                                 :stroke="band.colorBorder"
                                 stroke-width="1.2"
-                                rx="4"
+                                rx="3"
+                                class="transition-opacity duration-150 hover:opacity-90 cursor-pointer"
+                                @mouseenter="hoveredInfo = {
+                                    title: band.title,
+                                    date: band.rawDate || '',
+                                    duration: band.durationLabel,
+                                    edssBefore: band.edssBefore,
+                                    edssPeak: band.edssPeak,
+                                    edssAfter: band.edssAfter,
+                                    recovery: band.recoveryLabel,
+                                    treatment: band.treatmentLabel,
+                                }"
+                                @mouseleave="hoveredInfo = null"
                             />
 
-                            <!-- Top Band Header Pill -->
-                            <g :transform="`translate(${band.startX + band.width / 2}, ${piecewiseModelData.plotTop - 16})`">
+                            <!-- Band Header Pill (Compact and non-colliding) -->
+                            <g :transform="`translate(${band.startX + band.width / 2}, ${piecewiseModelData.plotTop - 12})`">
                                 <rect
-                                    :x="-Math.max(50, (band.title.length * 4) + 12)"
-                                    y="-12"
-                                    :width="Math.max(100, (band.title.length * 8) + 24)"
-                                    height="20"
-                                    rx="10"
+                                    :x="-Math.min(band.width / 2 - 2, 55)"
+                                    y="-9"
+                                    :width="Math.min(band.width - 4, 110)"
+                                    height="18"
+                                    rx="9"
                                     fill="#ffffff"
                                     :stroke="band.colorBorder"
-                                    stroke-width="1.2"
+                                    stroke-width="1"
                                     class="shadow-xs dark:fill-card"
                                 />
                                 <text
                                     x="0"
-                                    y="2"
+                                    y="3"
                                     text-anchor="middle"
-                                    class="text-[10px] font-bold fill-foreground"
+                                    class="text-[9.5px] font-bold fill-foreground"
                                 >
-                                    {{ band.title }} <tspan class="text-[9px] font-normal fill-muted-foreground font-mono">({{ band.durationLabel }})</tspan>
+                                    {{ band.width >= 100 ? band.shortTitle : (band.type === 'relapse' ? `P#${band.id.replace(/\D/g, '') || ''}` : 'Rém.') }}
                                 </text>
                             </g>
                         </g>
@@ -1181,23 +1083,21 @@ const printChart = () => {
                         <!-- 2. Y-AXIS (EDSS 0 to Max by 0.5 steps)             -->
                         <!-- -------------------------------------------------- -->
                         <g v-for="tick in piecewiseModelData.yTicks" :key="tick.score">
-                            <!-- Guideline across chart -->
                             <line
                                 :x1="piecewiseModelData.plotLeft"
                                 :y1="tick.y"
                                 :x2="piecewiseModelData.plotLeft + piecewiseModelData.plotWidth"
                                 :y2="tick.y"
                                 stroke="currentColor"
-                                :stroke-width="tick.isMajor ? 1.0 : 0.6"
+                                :stroke-width="tick.isMajor ? 0.9 : 0.5"
                                 :stroke-dasharray="tick.isMajor ? '0' : '3 3'"
-                                class="text-border/60"
+                                class="text-border/50"
                             />
-                            <!-- Tick label -->
                             <text
-                                :x="piecewiseModelData.plotLeft - 10"
+                                :x="piecewiseModelData.plotLeft - 8"
                                 :y="tick.y + 3.5"
                                 text-anchor="end"
-                                class="text-[10px] font-mono select-none"
+                                class="text-[9.5px] font-mono select-none"
                                 :class="tick.isMajor ? 'font-bold fill-foreground' : 'font-normal fill-muted-foreground'"
                             >
                                 {{ tick.score.toFixed(1) }}
@@ -1206,10 +1106,10 @@ const printChart = () => {
 
                         <!-- Y-Axis Title -->
                         <text
-                            :x="piecewiseModelData.plotLeft - 45"
-                            :y="piecewiseModelData.plotTop - 25"
+                            :x="piecewiseModelData.plotLeft - 40"
+                            :y="piecewiseModelData.plotTop - 16"
                             text-anchor="start"
-                            class="text-[10px] font-bold fill-indigo-600 dark:fill-indigo-400 uppercase tracking-wider"
+                            class="text-[9px] font-bold fill-indigo-600 dark:fill-indigo-400 uppercase tracking-wider"
                         >
                             Score EDSS
                         </text>
@@ -1223,34 +1123,34 @@ const printChart = () => {
                             :x2="piecewiseModelData.plotLeft + piecewiseModelData.plotWidth"
                             :y2="piecewiseModelData.plotBottom"
                             stroke="currentColor"
-                            stroke-width="1.8"
+                            stroke-width="1.5"
                             class="text-border"
                         />
 
-                        <!-- X-Axis Labels -->
+                        <!-- Clean, Non-colliding X-Axis Labels -->
                         <g v-for="tick in piecewiseModelData.xTicks" :key="tick.label">
                             <line
                                 :x1="tick.x"
                                 :y1="piecewiseModelData.plotBottom"
                                 :x2="tick.x"
-                                :y2="piecewiseModelData.plotBottom + 6"
+                                :y2="piecewiseModelData.plotBottom + 5"
                                 stroke="currentColor"
-                                stroke-width="1.2"
+                                stroke-width="1"
                                 class="text-muted-foreground"
                             />
                             <text
                                 :x="tick.x"
-                                :y="piecewiseModelData.plotBottom + 18"
+                                :y="piecewiseModelData.plotBottom + 16"
                                 text-anchor="middle"
-                                class="text-[10px] font-mono font-bold fill-foreground"
+                                class="text-[9px] font-mono font-bold fill-foreground"
                             >
                                 {{ tick.label }}
                             </text>
                             <text
                                 :x="tick.x"
-                                :y="piecewiseModelData.plotBottom + 29"
+                                :y="piecewiseModelData.plotBottom + 26"
                                 text-anchor="middle"
-                                class="text-[8.5px] font-sans fill-muted-foreground"
+                                class="text-[8px] font-sans fill-muted-foreground"
                             >
                                 {{ tick.sublabel }}
                             </text>
@@ -1261,7 +1161,7 @@ const printChart = () => {
                         <!-- -------------------------------------------------- -->
                         <path
                             :d="piecewiseModelData.areaPath"
-                            fill="url(#piecewiseAreaGradient)"
+                            fill="url(#cleanAreaGradient)"
                         />
 
                         <!-- -------------------------------------------------- -->
@@ -1271,194 +1171,220 @@ const printChart = () => {
                             :d="piecewiseModelData.linePath"
                             fill="none"
                             stroke="#1d4ed8"
-                            stroke-width="3.5"
+                            stroke-width="3"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         />
 
                         <!-- -------------------------------------------------- -->
-                        <!-- 6. CLINICAL NODE MARKERS & CALLOUT LABELS          -->
+                        <!-- 6. CLINICAL NODE MARKERS & COMPACT SCORE BADGES    -->
                         <!-- -------------------------------------------------- -->
                         <g v-for="pt in piecewiseModelData.points" :key="pt.id" class="group">
-                            <!-- Outer pulsing halo -->
+                            <!-- Clean Node Circle -->
                             <circle
                                 :cx="pt.x"
                                 :cy="pt.y"
-                                r="10"
-                                :fill="pt.color"
-                                fill-opacity="0.18"
-                            />
-
-                            <!-- Node circle -->
-                            <circle
-                                :cx="pt.x"
-                                :cy="pt.y"
-                                r="5.5"
+                                r="5"
                                 fill="#ffffff"
                                 :stroke="pt.color"
-                                stroke-width="3"
-                                class="transition-transform duration-150 group-hover:scale-125 cursor-pointer"
+                                stroke-width="2.8"
+                                class="transition-transform duration-150 group-hover:scale-135 cursor-pointer"
+                                @mouseenter="hoveredInfo = {
+                                    title: pt.badgeLabel,
+                                    date: pt.dateFormatted,
+                                    duration: pt.phase === 't1_start' ? 'Acmé aiguë' : (pt.phase === 't2_end' ? 'Post-récupération' : 'État de base'),
+                                    edssBefore: pt.score,
+                                    edssAfter: pt.score,
+                                }"
+                                @mouseleave="hoveredInfo = null"
                             />
 
-                            <!-- Callout Annotation Box -->
-                            <g :transform="`translate(${pt.x}, ${pt.phase === 't1_start' ? pt.y - 20 : (pt.phase === 't0_before' ? pt.y - 18 : pt.y + 22)})`">
+                            <!-- Compact Minimalist Badge (Only if space allows) -->
+                            <g
+                                v-if="pt.showLabel"
+                                :transform="`translate(${pt.x}, ${pt.phase === 't1_start' ? pt.y - 14 : pt.y + 16})`"
+                            >
                                 <rect
-                                    :x="-Math.max(45, (pt.label.length * 3.5) + 8)"
-                                    y="-10"
-                                    :width="Math.max(90, (pt.label.length * 7) + 16)"
-                                    height="20"
-                                    rx="5"
+                                    :x="-18"
+                                    y="-7"
+                                    width="36"
+                                    height="14"
+                                    rx="4"
                                     fill="#ffffff"
                                     stroke="currentColor"
                                     stroke-width="0.8"
-                                    class="text-border fill-card shadow-xs"
+                                    class="text-border fill-card shadow-2xs"
                                 />
                                 <text
                                     x="0"
-                                    y="3"
+                                    y="3.5"
                                     text-anchor="middle"
-                                    class="text-[9.5px] font-mono font-bold"
+                                    class="text-[8.5px] font-mono font-bold"
                                     :fill="pt.color"
                                 >
-                                    {{ pt.label }} ({{ pt.score.toFixed(1) }})
+                                    {{ pt.score.toFixed(1) }}
                                 </text>
                             </g>
                         </g>
                     </svg>
                 </div>
 
-                <!-- ============================================================== -->
-                <!-- 7. SUMMARY TABLE UNDERNEATH (Récapitulatif des valeurs)        -->
-                <!-- ============================================================== -->
-                <div class="rounded-xl border border-border/80 bg-card overflow-hidden shadow-2xs">
-                    <div class="px-4 py-2.5 bg-muted/40 border-b border-border/70 flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <FileSpreadsheet class="size-4 text-primary" />
-                            <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Récapitulatif des Valeurs Clés de l'Évolution EDSS
-                            </h4>
-                        </div>
-                        <span class="text-[11px] font-mono text-muted-foreground">Interpolation par morceaux conforme aux normes de recherche</span>
+                <!-- Minimalist Clean Legend -->
+                <div class="flex flex-wrap items-center justify-between text-[11px] text-muted-foreground px-1 gap-2">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <span class="flex items-center gap-1.5">
+                            <span class="size-2 rounded-full bg-blue-600"></span>
+                            <span>Score basal (t₀)</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="size-2 rounded-full bg-rose-600"></span>
+                            <span>Pic aigu / Acmé (t₁)</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="size-2 rounded-full bg-emerald-600"></span>
+                            <span>Récupération (t₂)</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-3 h-2 rounded-xs bg-rose-500/20 border border-rose-500/40"></span>
+                            <span>Poussée</span>
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-3 h-2 rounded-xs bg-sky-500/20 border border-sky-500/40"></span>
+                            <span>Rémission</span>
+                        </span>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left">
-                            <thead class="bg-muted/20 border-b border-border/60 text-muted-foreground text-[11px]">
-                                <tr>
-                                    <th class="py-2.5 px-3.5 font-semibold">Phase / Poussée</th>
-                                    <th class="py-2.5 px-3 font-semibold">Durée</th>
-                                    <th class="py-2.5 px-3 font-semibold">EDSS avant (t₀)</th>
-                                    <th class="py-2.5 px-3 font-semibold">EDSS au début (t₁)</th>
-                                    <th class="py-2.5 px-3 font-semibold">EDSS à la fin (t₂)</th>
-                                    <th class="py-2.5 px-3 font-semibold">Variation nette (Δ)</th>
-                                    <th class="py-2.5 px-3 font-semibold">Récupération / Statut</th>
-                                    <th class="py-2.5 px-3.5 font-semibold">Traitement reçu</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-border/50 font-mono">
-                                <tr
-                                    v-for="(row, idx) in piecewiseModelData.summaryRows"
-                                    :key="idx"
-                                    class="hover:bg-muted/30 transition-colors"
-                                >
-                                    <td class="py-2 px-3.5 font-sans font-semibold text-foreground">
-                                        {{ row.phase }}
-                                    </td>
-                                    <td class="py-2 px-3 text-muted-foreground">
-                                        {{ row.duration }}
-                                    </td>
-                                    <td class="py-2 px-3 font-bold text-blue-600 dark:text-blue-400">
-                                        {{ row.edssBefore }}
-                                    </td>
-                                    <td class="py-2 px-3 font-bold text-rose-600 dark:text-rose-400">
-                                        {{ row.edssPeak }}
-                                    </td>
-                                    <td class="py-2 px-3 font-bold text-emerald-600 dark:text-emerald-400">
-                                        {{ row.edssAfter }}
-                                    </td>
-                                    <td class="py-2 px-3" :class="row.deltaClass">
-                                        {{ row.delta }}
-                                    </td>
-                                    <td class="py-2 px-3 font-sans text-foreground">
-                                        <Badge variant="outline" class="text-[10px] py-0 font-normal">
-                                            {{ row.status }}
-                                        </Badge>
-                                    </td>
-                                    <td class="py-2 px-3.5 font-sans text-muted-foreground text-[11px]">
-                                        {{ row.treatment }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <span class="italic text-[10px]">
+                        Survolez les bandes ou les points pour inspecter les détails cliniques
+                    </span>
                 </div>
 
                 <!-- ============================================================== -->
-                <!-- 8. MATHEMATICAL FORMULATION BOX                               -->
+                <!-- 7. COLLAPSIBLE ACCORDION: TABLEAU RÉCAPITULATIF & FORMULE      -->
                 <!-- ============================================================== -->
-                <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <span class="size-2 rounded-full bg-indigo-500"></span>
-                            <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">
-                                Modélisation Mathématique de la Courbe (Segments Linéaires par Morceaux)
-                            </h4>
-                        </div>
-                        <Badge variant="outline" class="text-[10px] font-mono border-indigo-500/30 text-indigo-700 dark:text-indigo-300">
-                            EDSS(t)
-                        </Badge>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                        <!-- Piecewise formula theoretical -->
-                        <div class="p-3 rounded-lg bg-background/80 border border-border/70 font-mono space-y-1.5 leading-relaxed">
-                            <span class="text-[11px] text-muted-foreground font-sans font-semibold block">
-                                Équation générale paramétrique :
-                            </span>
-                            <div class="text-[11px] text-foreground">
-                                <span class="font-bold text-indigo-600">EDSS(t) =</span>
-                                <div class="pl-4 space-y-1 border-l-2 border-indigo-500/40 my-1">
-                                    <div>• EDSS₀ <span class="text-muted-foreground font-sans">si t ≤ t₀ (plateau avant poussée)</span></div>
-                                    <div>• EDSS₀ + (EDSS₁ - EDSS₀) · <span class="underline">(t - t₀)</span> / (t₁ - t₀) <span class="text-muted-foreground font-sans">si t₀ &lt; t &lt; t₁ (phase ascendante)</span></div>
-                                    <div>• EDSS₁ - (EDSS₁ - EDSS₂) · <span class="underline">(t - t₁)</span> / Δt <span class="text-muted-foreground font-sans">si t₁ ≤ t ≤ t₁ + Δt (phase de récupération)</span></div>
-                                    <div>• EDSS₂ <span class="text-muted-foreground font-sans">si t &gt; t₁ + Δt (plateau stabilisé)</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Paramètres appliqués -->
-                        <div class="p-3 rounded-lg bg-background/80 border border-border/70 font-mono space-y-1.5 leading-relaxed">
-                            <span class="text-[11px] text-muted-foreground font-sans font-semibold block">
-                                Paramètres appliqués à la 1ère poussée :
-                            </span>
-                            <div class="space-y-1 text-[11px]">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-muted-foreground">Score de référence (t₀) :</span>
-                                    <span class="font-bold text-blue-600">EDSS₀ = {{ piecewiseModelData.formulaData.edssBefore }}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-muted-foreground">Score au pic aigu (t₁) :</span>
-                                    <span class="font-bold text-rose-600">EDSS₁ = {{ piecewiseModelData.formulaData.edssPeak }}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-muted-foreground">Score final récupéré (t₂) :</span>
-                                    <span class="font-bold text-emerald-600">EDSS₂ = {{ piecewiseModelData.formulaData.edssAfter }}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-muted-foreground">Durée d'évaluation (Δt) :</span>
-                                    <span class="font-bold text-foreground">Δt = {{ piecewiseModelData.formulaData.durationDays }} jours</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Clinical Precaution Disclaimer Note -->
-                    <div class="flex items-start gap-2 pt-1 text-[11px] text-muted-foreground leading-relaxed border-t border-border/50">
-                        <Info class="size-3.5 text-indigo-500 shrink-0 mt-0.5" />
-                        <span>
-                            <strong class="text-foreground font-medium">Précaution méthodologique :</strong>
-                            Les segments reliant les mesures sont tracés à titre d'interpolation illustrative pour expliciter la cinétique de récupération. L'échelle EDSS étant ordinale, ses variations cliniques réelles sont discontinues. Le registre enregistre et distingue rigoureusement les dates réelles des évaluations cliniques des extrapolations visuelles.
+                <div class="border-t border-border/60 pt-2">
+                    <button
+                        type="button"
+                        @click="showMethodologyDetails = !showMethodologyDetails"
+                        class="flex items-center justify-between w-full p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 border border-border/60 text-xs font-semibold text-foreground transition-colors"
+                    >
+                        <span class="flex items-center gap-2">
+                            <FileSpreadsheet class="size-3.5 text-primary" />
+                            <span>Récapitulatif des valeurs & modélisation mathématique EDSS(t)</span>
                         </span>
+                        <span class="flex items-center gap-1 text-[11px] font-normal text-muted-foreground">
+                            <span>{{ showMethodologyDetails ? 'Masquer' : 'Afficher les détails méthodologiques' }}</span>
+                            <ChevronUp v-if="showMethodologyDetails" class="size-3.5" />
+                            <ChevronDown v-else class="size-3.5" />
+                        </span>
+                    </button>
+
+                    <!-- Collapsible Container -->
+                    <div v-if="showMethodologyDetails" class="mt-3 space-y-3 animate-in fade-in duration-200">
+                        <!-- Summary Table -->
+                        <div class="rounded-lg border border-border/70 overflow-hidden shadow-2xs">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-muted/40 border-b border-border/60 text-muted-foreground text-[10.5px]">
+                                        <tr>
+                                            <th class="py-2 px-3 font-semibold">Phase / Poussée</th>
+                                            <th class="py-2 px-2.5 font-semibold">Durée</th>
+                                            <th class="py-2 px-2.5 font-semibold">EDSS avant (t₀)</th>
+                                            <th class="py-2 px-2.5 font-semibold">EDSS pic (t₁)</th>
+                                            <th class="py-2 px-2.5 font-semibold">EDSS fin (t₂)</th>
+                                            <th class="py-2 px-2.5 font-semibold">Variation (Δ)</th>
+                                            <th class="py-2 px-2.5 font-semibold">Récupération</th>
+                                            <th class="py-2 px-3 font-semibold">Traitement</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-border/50 font-mono text-[11px]">
+                                        <tr
+                                            v-for="(row, idx) in piecewiseModelData.summaryRows"
+                                            :key="idx"
+                                            class="hover:bg-muted/20 transition-colors"
+                                        >
+                                            <td class="py-1.5 px-3 font-sans font-semibold text-foreground">
+                                                {{ row.phase }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5 text-muted-foreground">
+                                                {{ row.duration }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5 font-bold text-blue-600 dark:text-blue-400">
+                                                {{ row.edssBefore }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5 font-bold text-rose-600 dark:text-rose-400">
+                                                {{ row.edssPeak }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5 font-bold text-emerald-600 dark:text-emerald-400">
+                                                {{ row.edssAfter }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5" :class="row.deltaClass">
+                                                {{ row.delta }}
+                                            </td>
+                                            <td class="py-1.5 px-2.5 font-sans text-foreground">
+                                                <Badge variant="outline" class="text-[9.5px] py-0 font-normal">
+                                                    {{ row.status }}
+                                                </Badge>
+                                            </td>
+                                            <td class="py-1.5 px-3 font-sans text-muted-foreground text-[10.5px]">
+                                                {{ row.treatment }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Mathematical Piecewise Box -->
+                        <div class="rounded-lg border border-indigo-500/20 bg-indigo-500/5 p-3 space-y-2 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-foreground text-[11px] uppercase tracking-wider">
+                                    Fonction Mathématique Linéaire par Morceaux
+                                </span>
+                                <Badge variant="outline" class="text-[9.5px] font-mono border-indigo-500/30 text-indigo-700 dark:text-indigo-300">
+                                    EDSS(t)
+                                </Badge>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div class="p-2.5 rounded bg-background/80 border border-border/70 font-mono text-[10.5px] space-y-1">
+                                    <div class="font-bold text-indigo-600">EDSS(t) =</div>
+                                    <div class="pl-3 space-y-0.5 border-l-2 border-indigo-500/40">
+                                        <div>• EDSS₀ <span class="text-muted-foreground font-sans">si t ≤ t₀ (plateau avant poussée)</span></div>
+                                        <div>• EDSS₀ + (EDSS₁ - EDSS₀) · <span class="underline">(t - t₀)</span> / (t₁ - t₀) <span class="text-muted-foreground font-sans">si t₀ &lt; t &lt; t₁</span></div>
+                                        <div>• EDSS₁ - (EDSS₁ - EDSS₂) · <span class="underline">(t - t₁)</span> / Δt <span class="text-muted-foreground font-sans">si t₁ ≤ t ≤ t₁ + Δt</span></div>
+                                        <div>• EDSS₂ <span class="text-muted-foreground font-sans">si t &gt; t₁ + Δt (plateau stabilisé)</span></div>
+                                    </div>
+                                </div>
+
+                                <div class="p-2.5 rounded bg-background/80 border border-border/70 font-mono text-[10.5px] space-y-1">
+                                    <span class="text-[10px] text-muted-foreground font-sans font-semibold block">Paramètres de la 1ère poussée :</span>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">EDSS avant (t₀) :</span>
+                                        <span class="font-bold text-blue-600">{{ piecewiseModelData.formulaData.edssBefore }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">EDSS pic aigu (t₁) :</span>
+                                        <span class="font-bold text-rose-600">{{ piecewiseModelData.formulaData.edssPeak }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">EDSS final (t₂) :</span>
+                                        <span class="font-bold text-emerald-600">{{ piecewiseModelData.formulaData.edssAfter }}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-muted-foreground">Durée (Δt) :</span>
+                                        <span class="font-bold text-foreground">{{ piecewiseModelData.formulaData.durationDays }} jours</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-start gap-1.5 pt-1 text-[10.5px] text-muted-foreground border-t border-border/50">
+                                <Info class="size-3 text-indigo-500 shrink-0 mt-0.5" />
+                                <span>
+                                    <strong>Précaution clinique :</strong> L'échelle EDSS est ordinale. Les segments de droite sont purement illustratifs pour matérialiser la pente d'aggravation et de récupération. Les scores réels correspondent aux points mesurés.
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1466,9 +1392,9 @@ const printChart = () => {
             <!-- ============================================================== -->
             <!-- VIEW 2: ANNUAL DISTRIBUTION HISTOGRAM (ARR)                   -->
             <!-- ============================================================== -->
-            <div v-else-if="activeView === 'bars'" class="space-y-4">
+            <div v-else-if="activeView === 'bars'" class="space-y-3">
                 <div class="rounded-xl bg-card border border-border/70 p-4 shadow-xs">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center justify-between mb-3">
                         <div>
                             <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider">
                                 Distribution annuelle de l'activité inflammatoire
@@ -1484,7 +1410,7 @@ const printChart = () => {
                     </div>
 
                     <div class="w-full overflow-x-auto">
-                        <svg viewBox="0 0 720 180" class="w-full min-w-[550px] h-44 overflow-visible select-none font-sans">
+                        <svg viewBox="0 0 720 160" class="w-full min-w-[500px] h-40 overflow-visible select-none font-sans">
                             <defs>
                                 <linearGradient id="annualBarGradient" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="0%" stop-color="#2563eb" stop-opacity="0.95" />
@@ -1492,36 +1418,36 @@ const printChart = () => {
                                 </linearGradient>
                             </defs>
 
-                            <line x1="30" y1="125" x2="690" y2="125" stroke="currentColor" stroke-width="1.5" class="text-border" />
+                            <line x1="30" y1="115" x2="690" y2="115" stroke="currentColor" stroke-width="1.5" class="text-border" />
 
                             <g v-for="item in annualDistributionData.items" :key="item.year" class="group">
                                 <rect
                                     v-if="item.count > 0"
-                                    :x="item.x - 18"
-                                    :y="125 - (item.count / annualDistributionData.maxCount) * 80"
-                                    width="36"
-                                    :height="Math.max(10, (item.count / annualDistributionData.maxCount) * 80)"
-                                    rx="5"
+                                    :x="item.x - 16"
+                                    :y="115 - (item.count / annualDistributionData.maxCount) * 75"
+                                    width="32"
+                                    :height="Math.max(10, (item.count / annualDistributionData.maxCount) * 75)"
+                                    rx="4"
                                     fill="url(#annualBarGradient)"
                                     class="hover:brightness-110 transition-all cursor-pointer shadow-xs"
                                 />
-                                <circle v-else :cx="item.x" cy="125" r="3.5" class="fill-muted-foreground/40" />
+                                <circle v-else :cx="item.x" cy="115" r="3" class="fill-muted-foreground/40" />
 
                                 <text
                                     v-if="item.count > 0"
                                     :x="item.x"
-                                    :y="125 - (item.count / annualDistributionData.maxCount) * 80 - 7"
+                                    :y="115 - (item.count / annualDistributionData.maxCount) * 75 - 6"
                                     text-anchor="middle"
-                                    class="text-[12px] font-mono font-bold fill-foreground"
+                                    class="text-[11px] font-mono font-bold fill-foreground"
                                 >
                                     {{ item.count }}
                                 </text>
 
                                 <text
                                     :x="item.x"
-                                    y="146"
+                                    y="134"
                                     text-anchor="middle"
-                                    class="text-[12px] font-mono font-bold fill-foreground group-hover:fill-indigo-600 transition-colors"
+                                    class="text-[11px] font-mono font-bold fill-foreground group-hover:fill-indigo-600 transition-colors"
                                 >
                                     {{ item.year }}
                                 </text>
@@ -1529,9 +1455,9 @@ const printChart = () => {
                                 <text
                                     v-if="item.count > 0"
                                     :x="item.x"
-                                    y="160"
+                                    y="146"
                                     text-anchor="middle"
-                                    class="text-[10px] font-mono fill-indigo-600 dark:fill-indigo-400 font-medium"
+                                    class="text-[9.5px] font-mono fill-indigo-600 dark:fill-indigo-400 font-medium"
                                 >
                                     {{ item.count }} {{ item.count > 1 ? 'poussées' : 'poussée' }}
                                 </text>
