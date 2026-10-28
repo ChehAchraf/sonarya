@@ -40,6 +40,8 @@ class RelapseFactory extends Factory
             'administration_route' => 'Intraveineuse (IV)',
             'clinical_recovery' => fake()->randomElement(['Complète', 'Incomplète', 'Nulle']),
             'edss_before_relapse' => fake()->randomFloat(1, 0, 6),
+            'edss_before_date' => fake()->dateTimeBetween('-2 years', 'now')->format('Y-m-d'),
+            'edss_during_relapse' => fake()->randomFloat(1, 1, 8),
             'edss_after_relapse' => fake()->randomFloat(1, 0, 7),
             'edss_evaluation_date' => fake()->dateTimeBetween('-2 years', 'now')->format('Y-m-d'),
             'sequelae' => null,

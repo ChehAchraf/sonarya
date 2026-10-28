@@ -24,6 +24,8 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string|null $administration_route
  * @property string|null $clinical_recovery
  * @property float|null $edss_before_relapse
+ * @property Carbon|null $edss_before_date
+ * @property float|null $edss_during_relapse
  * @property float|null $edss_after_relapse
  * @property Carbon|null $edss_evaluation_date
  * @property string|null $sequelae
@@ -45,6 +47,8 @@ use Spatie\Activitylog\Support\LogOptions;
     'administration_route',
     'clinical_recovery',
     'edss_before_relapse',
+    'edss_before_date',
+    'edss_during_relapse',
     'edss_after_relapse',
     'edss_evaluation_date',
     'sequelae',
@@ -69,6 +73,8 @@ class Relapse extends Model
             'is_before_diagnosis' => 'boolean',
             'hospitalization_required' => 'boolean',
             'edss_before_relapse' => 'decimal:1',
+            'edss_before_date' => 'date',
+            'edss_during_relapse' => 'decimal:1',
             'edss_after_relapse' => 'decimal:1',
             'edss_evaluation_date' => 'date',
         ];

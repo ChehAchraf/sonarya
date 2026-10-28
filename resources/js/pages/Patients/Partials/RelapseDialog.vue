@@ -56,6 +56,9 @@ export type RelapseFormData = {
     administration_route: string | null;
     clinical_recovery: string | null;
     edss_before_relapse?: number | string | null;
+    edss_before_date?: string | null;
+    edss_before_date_raw?: string | null;
+    edss_during_relapse?: number | string | null;
     edss_after_relapse?: number | string | null;
     edss_evaluation_date?: string | null;
     edss_evaluation_date_raw?: string | null;
@@ -85,6 +88,8 @@ const form = useForm({
     administration_route: 'Intraveineuse (IV)',
     clinical_recovery: 'Complète',
     edss_before_relapse: '' as number | string,
+    edss_before_date: '',
+    edss_during_relapse: '' as number | string,
     edss_after_relapse: '' as number | string,
     edss_evaluation_date: '',
     sequelae: '',
@@ -107,6 +112,8 @@ watch(
                 form.administration_route = props.relapse.administration_route || 'Intraveineuse (IV)';
                 form.clinical_recovery = props.relapse.clinical_recovery || 'Complète';
                 form.edss_before_relapse = props.relapse.edss_before_relapse !== null && props.relapse.edss_before_relapse !== undefined ? props.relapse.edss_before_relapse : '';
+                form.edss_before_date = props.relapse.edss_before_date_raw || '';
+                form.edss_during_relapse = props.relapse.edss_during_relapse !== null && props.relapse.edss_during_relapse !== undefined ? props.relapse.edss_during_relapse : '';
                 form.edss_after_relapse = props.relapse.edss_after_relapse !== null && props.relapse.edss_after_relapse !== undefined ? props.relapse.edss_after_relapse : '';
                 form.edss_evaluation_date = props.relapse.edss_evaluation_date_raw || '';
                 form.sequelae = props.relapse.sequelae || '';
@@ -123,6 +130,8 @@ watch(
                 form.administration_route = 'Intraveineuse (IV)';
                 form.clinical_recovery = 'Complète';
                 form.edss_before_relapse = '';
+                form.edss_before_date = '';
+                form.edss_during_relapse = '';
                 form.edss_after_relapse = '';
                 form.edss_evaluation_date = '';
                 form.sequelae = '';
@@ -551,91 +560,167 @@ const submit = () => {
 
                 <Separator />
 
-                <!-- Section 5: Évaluation EDSS (Avant & Après la Poussée) -->
-                <div class="space-y-3 p-3.5 rounded-xl bg-muted/30 border border-border/70">
+                <!-- Section 5: Évaluation EDSS (Avant, Début/Pic aigu, et Fin de Poussée) -->
+                <div class="space-y-4 p-4 rounded-xl bg-muted/30 border border-border/70">
                     <div class="flex items-center justify-between">
                         <h4 class="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                             <TrendingUp class="size-3.5 text-primary" />
                             <span>Suivi du Handicap EDSS (Échelle 0 à 10)</span>
                         </h4>
-                        <span class="text-[10px] font-mono text-muted-foreground">Recommandation clinique</span>
+                        <span class="text-[10px] font-mono text-muted-foreground">Modèle à 3 phases (t₀, t₁, t₂)</span>
                     </div>
-                    <p class="text-xs text-muted-foreground">
-                        Permet de distinguer l'aggravation transitoire pendant la poussée du handicap résiduel stabilisé après récupération.
+                    <p class="text-xs text-muted-foreground leading-relaxed">
+                        Permet de modéliser avec précision le plateau basal de référence (<span class="font-semibold text-foreground">t₀</span>), le pic aigu des symptômes (<span class="font-semibold text-foreground">t₁</span>), et le niveau de récupération stabilisé à la fin (<span class="font-semibold text-foreground">t₂</span>).
                     </p>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                        <!-- EDSS Avant la poussée -->
-                        <div class="space-y-1.5">
-                            <Label for="edss_before_relapse" class="text-xs font-medium">
-                                EDSS Avant Poussée <span class="text-muted-foreground text-[10px]">(si dispo)</span>
-                            </Label>
-                            <Input
-                                id="edss_before_relapse"
-                                v-model="form.edss_before_relapse"
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                max="10"
-                                placeholder="ex: 1.5"
-                                class="font-mono bg-background"
-                            />
-                            <InputError :message="form.errors.edss_before_relapse" />
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+                        <!-- Phase 1: Avant la Poussée (t0) -->
+                        <div class="p-3 rounded-lg border border-border/70 bg-background/60 space-y-2">
+                            <div class="flex items-center justify-between pb-1 border-b border-border/50">
+                                <span class="text-xs font-bold text-foreground flex items-center gap-1.5">
+                                    <span class="size-2 rounded-full bg-blue-500"></span>
+                                    1. Avant Poussée (t₀)
+                                </span>
+                                <Badge variant="outline" class="text-[10px] px-1.5 py-0 font-normal">Basal</Badge>
+                            </div>
+                            <div class="space-y-1">
+                                <Label for="edss_before_relapse" class="text-[11px] text-muted-foreground font-medium">
+                                    Score EDSS de référence
+                                </Label>
+                                <Input
+                                    id="edss_before_relapse"
+                                    v-model="form.edss_before_relapse"
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="10"
+                                    placeholder="ex: 0.5"
+                                    class="font-mono h-8 text-xs bg-background"
+                                />
+                                <InputError :message="form.errors.edss_before_relapse" />
+                            </div>
+                            <div class="space-y-1">
+                                <Label for="edss_before_date" class="text-[11px] text-muted-foreground font-medium">
+                                    Date évaluation t₀
+                                </Label>
+                                <Input
+                                    id="edss_before_date"
+                                    v-model="form.edss_before_date"
+                                    type="date"
+                                    class="font-mono h-8 text-xs bg-background"
+                                />
+                                <InputError :message="form.errors.edss_before_date" />
+                            </div>
                         </div>
 
-                        <!-- EDSS Après la poussée -->
-                        <div class="space-y-1.5">
-                            <Label for="edss_after_relapse" class="text-xs font-medium">
-                                EDSS Après Poussée <span class="text-muted-foreground text-[10px]">(Post-récup.)</span>
-                            </Label>
-                            <Input
-                                id="edss_after_relapse"
-                                v-model="form.edss_after_relapse"
-                                type="number"
-                                step="0.5"
-                                min="0"
-                                max="10"
-                                placeholder="ex: 2.0"
-                                class="font-mono bg-background"
-                            />
-                            <InputError :message="form.errors.edss_after_relapse" />
+                        <!-- Phase 2: Début / Acmé Aiguë (t1) -->
+                        <div class="p-3 rounded-lg border border-rose-500/30 bg-rose-500/5 space-y-2">
+                            <div class="flex items-center justify-between pb-1 border-b border-rose-500/20">
+                                <span class="text-xs font-bold text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                                    <span class="size-2 rounded-full bg-rose-500"></span>
+                                    2. Début / Pic Aigu (t₁)
+                                </span>
+                                <Badge variant="outline" class="text-[10px] px-1.5 py-0 border-rose-500/30 text-rose-700 dark:text-rose-400 font-semibold">Acmé</Badge>
+                            </div>
+                            <div class="space-y-1">
+                                <Label for="edss_during_relapse" class="text-[11px] text-rose-800 dark:text-rose-300 font-medium">
+                                    Score EDSS au pic aigu
+                                </Label>
+                                <Input
+                                    id="edss_during_relapse"
+                                    v-model="form.edss_during_relapse"
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="10"
+                                    placeholder="ex: 2.0"
+                                    class="font-mono h-8 text-xs bg-background"
+                                />
+                                <InputError :message="form.errors.edss_during_relapse" />
+                            </div>
+                            <div class="space-y-1">
+                                <span class="text-[11px] text-muted-foreground font-medium block">
+                                    Date de survenue t₁
+                                </span>
+                                <div class="h-8 px-2.5 rounded-md border border-border/70 bg-background/80 flex items-center text-xs font-mono text-muted-foreground">
+                                    {{ form.start_date ? form.start_date : 'Définie au début (t₁)' }}
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Date d'évaluation EDSS -->
-                        <div class="space-y-1.5">
-                            <Label for="edss_evaluation_date" class="text-xs font-medium">
-                                Date Réelle Évaluation EDSS
-                            </Label>
-                            <Input
-                                id="edss_evaluation_date"
-                                v-model="form.edss_evaluation_date"
-                                type="date"
-                                class="font-mono bg-background"
-                            />
-                            <InputError :message="form.errors.edss_evaluation_date" />
+                        <!-- Phase 3: Fin / Récupération Stabilisée (t2) -->
+                        <div class="p-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 space-y-2">
+                            <div class="flex items-center justify-between pb-1 border-b border-emerald-500/20">
+                                <span class="text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                                    <span class="size-2 rounded-full bg-emerald-500"></span>
+                                    3. Fin / Évaluation (t₂)
+                                </span>
+                                <Badge variant="outline" class="text-[10px] px-1.5 py-0 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-normal">Stabilisé</Badge>
+                            </div>
+                            <div class="space-y-1">
+                                <Label for="edss_after_relapse" class="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium">
+                                    Score EDSS après récupération
+                                </Label>
+                                <Input
+                                    id="edss_after_relapse"
+                                    v-model="form.edss_after_relapse"
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    max="10"
+                                    placeholder="ex: 1.0"
+                                    class="font-mono h-8 text-xs bg-background"
+                                />
+                                <InputError :message="form.errors.edss_after_relapse" />
+                            </div>
+                            <div class="space-y-1">
+                                <Label for="edss_evaluation_date" class="text-[11px] text-muted-foreground font-medium">
+                                    Date évaluation finale t₂
+                                </Label>
+                                <Input
+                                    id="edss_evaluation_date"
+                                    v-model="form.edss_evaluation_date"
+                                    type="date"
+                                    class="font-mono h-8 text-xs bg-background"
+                                />
+                                <InputError :message="form.errors.edss_evaluation_date" />
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Delta EDSS calculé en direct si les deux sont remplis -->
+                    <!-- Synthèse clinique dynamique -->
                     <div
-                        v-if="form.edss_before_relapse !== '' && form.edss_after_relapse !== ''"
-                        class="text-xs px-2.5 py-1.5 rounded-lg border flex items-center justify-between"
-                        :class="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)
-                            ? 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-400 font-medium'
-                            : Number(form.edss_after_relapse) < Number(form.edss_before_relapse)
-                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-400 font-medium'
-                            : 'bg-muted/50 border-border text-muted-foreground'"
+                        v-if="form.edss_before_relapse !== '' || form.edss_during_relapse !== '' || form.edss_after_relapse !== ''"
+                        class="p-2.5 rounded-lg border text-xs bg-background/80 flex flex-wrap items-center justify-between gap-2"
                     >
-                        <span>Variation nette du handicap :</span>
-                        <span class="font-mono font-bold">
-                            {{ Number(form.edss_after_relapse) - Number(form.edss_before_relapse) > 0 ? '+' : '' }}{{ (Number(form.edss_after_relapse) - Number(form.edss_before_relapse)).toFixed(1) }} points EDSS
-                            <span v-if="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)" class="ml-1 text-[10px] font-normal">
-                                (Progression / Aggravation résiduelle)
+                        <div class="flex items-center gap-2">
+                            <span class="text-muted-foreground">Dynamique clinique observée :</span>
+                            <span class="font-mono font-semibold">
+                                <span class="text-blue-600 dark:text-blue-400">{{ form.edss_before_relapse !== '' ? form.edss_before_relapse : '?' }}</span>
+                                <span class="text-muted-foreground mx-1">→</span>
+                                <span class="text-rose-600 dark:text-rose-400 font-bold">{{ form.edss_during_relapse !== '' ? form.edss_during_relapse : '?' }} (acmé)</span>
+                                <span class="text-muted-foreground mx-1">→</span>
+                                <span class="text-emerald-600 dark:text-emerald-400">{{ form.edss_after_relapse !== '' ? form.edss_after_relapse : '?' }} (final)</span>
                             </span>
-                            <span v-else-if="Number(form.edss_after_relapse) === Number(form.edss_before_relapse)" class="ml-1 text-[10px] font-normal">
-                                (Handicap stable après récupération)
+                        </div>
+                        <div v-if="form.edss_before_relapse !== '' && form.edss_after_relapse !== ''" class="flex items-center gap-1.5 font-mono text-[11px]">
+                            <span class="text-muted-foreground">Impact résiduel net :</span>
+                            <span
+                                :class="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)
+                                    ? 'text-rose-600 dark:text-rose-400 font-bold'
+                                    : Number(form.edss_after_relapse) < Number(form.edss_before_relapse)
+                                    ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                                    : 'text-muted-foreground font-medium'"
+                            >
+                                {{ Number(form.edss_after_relapse) - Number(form.edss_before_relapse) > 0 ? '+' : '' }}{{ (Number(form.edss_after_relapse) - Number(form.edss_before_relapse)).toFixed(1) }} pt
+                                <span v-if="Number(form.edss_after_relapse) > Number(form.edss_before_relapse)" class="font-sans text-[10px] font-normal">
+                                    (récupération partielle)
+                                </span>
+                                <span v-else-if="Number(form.edss_after_relapse) === Number(form.edss_before_relapse)" class="font-sans text-[10px] font-normal">
+                                    (récupération complète)
+                                </span>
                             </span>
-                        </span>
+                        </div>
                     </div>
                 </div>
 

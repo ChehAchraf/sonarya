@@ -33,7 +33,9 @@ test('authenticated user can store a new relapse for a patient', function () {
         'administration_route' => 'Intraveineuse (IV)',
         'clinical_recovery' => 'Complète',
         'edss_before_relapse' => 1.5,
-        'edss_after_relapse' => 3.5,
+        'edss_before_date' => '2025-01-15',
+        'edss_during_relapse' => 4.0,
+        'edss_after_relapse' => 2.0,
         'edss_evaluation_date' => '2025-03-01',
         'sequelae' => null,
         'hospitalization_required' => true,
@@ -52,7 +54,9 @@ test('authenticated user can store a new relapse for a patient', function () {
     expect($relapse->symptoms)->toBe('Névrite optique rétrobulbaire gauche aiguë avec baisse visuelle à 2/10')
         ->and($relapse->severity)->toBe('severe')
         ->and((float) $relapse->edss_before_relapse)->toBe(1.5)
-        ->and((float) $relapse->edss_after_relapse)->toBe(3.5)
+        ->and($relapse->edss_before_date?->format('Y-m-d'))->toBe('2025-01-15')
+        ->and((float) $relapse->edss_during_relapse)->toBe(4.0)
+        ->and((float) $relapse->edss_after_relapse)->toBe(2.0)
         ->and($relapse->edss_evaluation_date?->format('Y-m-d'))->toBe('2025-03-01')
         ->and($relapse->start_date?->format('Y-m-d'))->toBe('2025-02-10')
         ->and($relapse->end_date?->format('Y-m-d'))->toBe('2025-02-25')
@@ -142,6 +146,8 @@ test('authenticated user can update an existing relapse', function () {
         'treatment_administered' => 'Bolus Solumédrol 1g x 5j',
         'administration_route' => 'Intraveineuse (IV)',
         'clinical_recovery' => 'Complète',
+        'edss_during_relapse' => 3.0,
+        'edss_after_relapse' => 1.0,
         'sequelae' => null,
         'hospitalization_required' => true,
         'notes' => 'Récupération différée constatée lors du bilan de contrôle.',
@@ -156,6 +162,8 @@ test('authenticated user can update an existing relapse', function () {
     expect($relapse->symptoms)->toBe('Paresthésies et déficit moteur modéré réévalué')
         ->and($relapse->treatment_administered)->toBe('Bolus Solumédrol 1g x 5j')
         ->and($relapse->clinical_recovery)->toBe('Complète')
+        ->and((float) $relapse->edss_during_relapse)->toBe(3.0)
+        ->and((float) $relapse->edss_after_relapse)->toBe(1.0)
         ->and($relapse->hospitalization_required)->toBeTrue()
         ->and($relapse->sequelae)->toBeNull();
 });
