@@ -255,7 +255,9 @@ const symptomaticPresets = [
 
 const applyCatalogMolecule = (mono: MoleculeMonograph) => {
     selectedMonograph.value = mono;
-    form.molecule_name = `${mono.moleculeName} (${mono.commercialNames})`;
+    form.molecule_name = mono.moleculeName.includes('(')
+        ? mono.moleculeName
+        : `${mono.moleculeName} (${mono.commercialNames})`;
     form.therapeutic_line = mono.line;
     form.category = 'fond';
     form.therapeutic_class = mono.therapeuticClass;
@@ -362,7 +364,8 @@ watch(
 
             // Try to match existing molecule in catalog
             const matched = THERAPEUTIC_CATALOG.find((m) =>
-                form.molecule_name.toLowerCase().includes(m.moleculeName.toLowerCase())
+                form.molecule_name.toLowerCase().includes(m.moleculeName.toLowerCase()) ||
+                (m.commercialNames && form.molecule_name.toLowerCase().includes(m.commercialNames.split(' ')[0].toLowerCase()))
             );
             selectedMonograph.value = matched || null;
         } else {
@@ -1078,7 +1081,7 @@ const submit = () => {
                     <BookOpen class="size-5 text-primary" />
                     <div>
                         <DialogTitle class="text-base font-bold text-foreground">
-                            {{ selectedMonograph.moleculeName }} ({{ selectedMonograph.commercialNames }})
+                            {{ selectedMonograph.moleculeName.includes('(') ? selectedMonograph.moleculeName : `${selectedMonograph.moleculeName} (${selectedMonograph.commercialNames})` }}
                         </DialogTitle>
                         <DialogDescription class="text-xs">
                             Monographie clinique officielle (Maroc) & données de pharmacovigilance
