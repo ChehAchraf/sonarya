@@ -9,6 +9,7 @@ import {
     Info,
     Printer,
     TrendingUp,
+    X,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
@@ -100,8 +101,9 @@ const dataSourceMode = ref<'real' | 'benchmark'>('real');
 // Collapsible section for methodology and formula
 const showMethodologyDetails = ref(false);
 
-// Active hovered element for interactive tooltip
-const hoveredInfo = ref<{
+// Selected element for details inspection on click
+export type SelectedPhaseInfo = {
+    id: string;
     title: string;
     date: string;
     duration: string;
@@ -110,7 +112,17 @@ const hoveredInfo = ref<{
     edssAfter: number | string;
     recovery?: string;
     treatment?: string;
-} | null>(null);
+};
+
+const selectedPhaseInfo = ref<SelectedPhaseInfo | null>(null);
+
+function togglePhaseSelection(info: SelectedPhaseInfo) {
+    if (selectedPhaseInfo.value?.id === info.id) {
+        selectedPhaseInfo.value = null;
+    } else {
+        selectedPhaseInfo.value = info;
+    }
+}
 
 // Reference to SVG for PNG export
 const chartSvgRef = ref<SVGSVGElement | null>(null);
@@ -973,28 +985,38 @@ const printChart = () => {
             <!-- VIEW 1: THREE-PHASE PIECEWISE CURVE & SHADED BANDS             -->
             <!-- ============================================================== -->
             <div v-if="activeView === 'edss_timeline'" class="space-y-3">
-                <!-- Interactive Hovered Phase Badge (Clean, zero clutter) -->
+                <!-- Selected Phase Details Banner (Activated on Click) -->
                 <div
-                    v-if="hoveredInfo"
-                    class="px-3 py-1.5 rounded-lg bg-muted/60 border border-border/70 text-xs flex flex-wrap items-center justify-between gap-2 transition-all animate-in fade-in"
+                    v-if="selectedPhaseInfo"
+                    class="px-3.5 py-2 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-xs flex flex-wrap items-center justify-between gap-2 shadow-2xs transition-all animate-in fade-in"
                 >
                     <div class="flex items-center gap-2">
-                        <span class="font-bold text-foreground">{{ hoveredInfo.title }}</span>
-                        <span class="text-muted-foreground">({{ hoveredInfo.duration }})</span>
-                        <span class="text-muted-foreground font-mono text-[11px]">{{ hoveredInfo.date }}</span>
+                        <Badge variant="outline" class="font-bold bg-background text-indigo-700 dark:text-indigo-300 border-indigo-500/40">
+                            {{ selectedPhaseInfo.title }}
+                        </Badge>
+                        <span class="text-foreground font-medium">({{ selectedPhaseInfo.duration }})</span>
+                        <span class="text-muted-foreground font-mono text-[11px]">{{ selectedPhaseInfo.date }}</span>
                     </div>
                     <div class="flex items-center gap-2 font-mono text-xs">
-                        <span class="text-muted-foreground">EDSS :</span>
-                        <span class="text-blue-600 dark:text-blue-400 font-bold">{{ hoveredInfo.edssBefore }}</span>
-                        <template v-if="hoveredInfo.edssPeak !== undefined">
+                        <span class="text-muted-foreground font-sans">EDSS :</span>
+                        <span class="text-blue-600 dark:text-blue-400 font-bold">{{ selectedPhaseInfo.edssBefore }}</span>
+                        <template v-if="selectedPhaseInfo.edssPeak !== undefined">
                             <span class="text-muted-foreground">→</span>
-                            <span class="text-rose-600 dark:text-rose-400 font-bold">{{ hoveredInfo.edssPeak }} (acmé)</span>
+                            <span class="text-rose-600 dark:text-rose-400 font-bold">{{ selectedPhaseInfo.edssPeak }} (acmé)</span>
                         </template>
                         <span class="text-muted-foreground">→</span>
-                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ hoveredInfo.edssAfter }} (post)</span>
-                        <span v-if="hoveredInfo.treatment" class="text-muted-foreground font-sans text-[11px] ml-1">
-                            • {{ hoveredInfo.treatment }}
+                        <span class="text-emerald-600 dark:text-emerald-400 font-bold">{{ selectedPhaseInfo.edssAfter }} (post)</span>
+                        <span v-if="selectedPhaseInfo.treatment" class="text-muted-foreground font-sans text-[11px] ml-1">
+                            • {{ selectedPhaseInfo.treatment }}
                         </span>
+                        <button
+                            type="button"
+                            @click="selectedPhaseInfo = null"
+                            class="text-muted-foreground hover:text-foreground p-0.5 rounded-full hover:bg-muted ml-2 transition-colors cursor-pointer"
+                            title="Fermer"
+                        >
+                            <X class="size-3.5" />
+                        </button>
                     </div>
                 </div>
 
@@ -1038,11 +1060,12 @@ const printChart = () => {
                                 :width="band.width"
                                 :height="piecewiseModelData.plotHeight"
                                 :fill="band.colorBg"
-                                :stroke="band.colorBorder"
-                                stroke-width="1.2"
+                                :stroke="selectedPhaseInfo?.id === band.id ? '#2563eb' : band.colorBorder"
+                                :stroke-width="selectedPhaseInfo?.id === band.id ? 2.5 : 1.2"
                                 rx="3"
-                                class="transition-opacity duration-150 hover:opacity-90 cursor-pointer"
-                                @mouseenter="hoveredInfo = {
+                                class="transition-all hover:opacity-90 cursor-pointer"
+                                @click="togglePhaseSelection({
+                                    id: band.id,
                                     title: band.title,
                                     date: band.rawDate || '',
                                     duration: band.durationLabel,
@@ -1051,12 +1074,25 @@ const printChart = () => {
                                     edssAfter: band.edssAfter,
                                     recovery: band.recoveryLabel,
                                     treatment: band.treatmentLabel,
-                                }"
-                                @mouseleave="hoveredInfo = null"
+                                })"
                             />
 
                             <!-- Band Header Pill (Compact and non-colliding) -->
-                            <g :transform="`translate(${band.startX + band.width / 2}, ${piecewiseModelData.plotTop - 12})`">
+                            <g
+                                :transform="`translate(${band.startX + band.width / 2}, ${piecewiseModelData.plotTop - 12})`"
+                                class="cursor-pointer"
+                                @click="togglePhaseSelection({
+                                    id: band.id,
+                                    title: band.title,
+                                    date: band.rawDate || '',
+                                    duration: band.durationLabel,
+                                    edssBefore: band.edssBefore,
+                                    edssPeak: band.edssPeak,
+                                    edssAfter: band.edssAfter,
+                                    recovery: band.recoveryLabel,
+                                    treatment: band.treatmentLabel,
+                                })"
+                            >
                                 <rect
                                     :x="-Math.min(band.width / 2 - 2, 55)"
                                     y="-9"
@@ -1186,23 +1222,32 @@ const printChart = () => {
                                 :cy="pt.y"
                                 r="5"
                                 fill="#ffffff"
-                                :stroke="pt.color"
-                                stroke-width="2.8"
-                                class="transition-transform duration-150 group-hover:scale-135 cursor-pointer"
-                                @mouseenter="hoveredInfo = {
+                                :stroke="selectedPhaseInfo?.id === pt.id ? '#2563eb' : pt.color"
+                                :stroke-width="selectedPhaseInfo?.id === pt.id ? 4 : 2.8"
+                                class="transition-transform duration-150 hover:scale-135 cursor-pointer"
+                                @click="togglePhaseSelection({
+                                    id: pt.id,
                                     title: pt.badgeLabel,
                                     date: pt.dateFormatted,
                                     duration: pt.phase === 't1_start' ? 'Acmé aiguë' : (pt.phase === 't2_end' ? 'Post-récupération' : 'État de base'),
                                     edssBefore: pt.score,
                                     edssAfter: pt.score,
-                                }"
-                                @mouseleave="hoveredInfo = null"
+                                })"
                             />
 
                             <!-- Compact Minimalist Badge (Only if space allows) -->
                             <g
                                 v-if="pt.showLabel"
                                 :transform="`translate(${pt.x}, ${pt.phase === 't1_start' ? pt.y - 14 : pt.y + 16})`"
+                                class="cursor-pointer"
+                                @click="togglePhaseSelection({
+                                    id: pt.id,
+                                    title: pt.badgeLabel,
+                                    date: pt.dateFormatted,
+                                    duration: pt.phase === 't1_start' ? 'Acmé aiguë' : (pt.phase === 't2_end' ? 'Post-récupération' : 'État de base'),
+                                    edssBefore: pt.score,
+                                    edssAfter: pt.score,
+                                })"
                             >
                                 <rect
                                     :x="-18"
@@ -1255,7 +1300,7 @@ const printChart = () => {
                     </div>
 
                     <span class="italic text-[10px]">
-                        Survolez les bandes ou les points pour inspecter les détails cliniques
+                        Cliquez sur une poussée ou un point pour afficher ses détails cliniques
                     </span>
                 </div>
 
